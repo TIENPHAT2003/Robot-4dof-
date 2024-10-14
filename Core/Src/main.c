@@ -29,6 +29,7 @@
 #include "PID.h"
 #include "stdio.h"
 #include <stdbool.h>
+#include "cJSON.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -83,9 +84,12 @@ void StartTaskPID(void const * argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 //----------------GLOBAL VARIABLE------------------//
-uint8_t startProgram;
+uint8_t startProgram, startFK, startIK_BN1, startIK_BN2;
 int SpeedSetHomeJ1, SpeedSetHomeJ2, SpeedSetHomeJ3, SpeedSetHomeJ4;
 uint8_t sethomeJ1, sethomeJ2, sethomeJ3, sethomeJ4;
+float inputTheta1, inputTheta2, inputTheta3, inputTheta4;
+float inputPx, inputPy, inputPz, inputTheta;
+int8_t sensor1, sensor2, sensor3, sensor4;
 
 //----------------GLOBAL VARIABLE------------------//
 
@@ -94,7 +98,7 @@ EncoderRead ENC_LINK1;
 MotorDrive 	Motor_LINK1;
 PID_Param	PID_DC_SPEED_LINK1;
 PID_Param	PID_DC_POS_LINK1;
-int AngleLink1;
+float AngleLink1;
 void PID_LINK1_Init()
 {
 	PID_DC_SPEED_LINK1.kP = 50;
@@ -133,7 +137,7 @@ EncoderRead ENC_LINK2;
 MotorDrive 	Motor_LINK2;
 PID_Param	PID_DC_SPEED_LINK2;
 PID_Param	PID_DC_POS_LINK2;
-int AngleLink2;
+float AngleLink2;
 void PID_LINK2_Init()
 {
 	PID_DC_SPEED_LINK2.kP = 50;
@@ -172,7 +176,7 @@ EncoderRead ENC_LINK3;
 MotorDrive 	Motor_LINK3;
 PID_Param	PID_DC_SPEED_LINK3;
 PID_Param	PID_DC_POS_LINK3;
-int AngleLink3;
+float AngleLink3;
 void PID_LINK3_Init()
 {
 	PID_DC_SPEED_LINK3.kP = 50;
@@ -211,11 +215,11 @@ EncoderRead ENC_LINK4;
 MotorDrive 	Motor_LINK4;
 PID_Param	PID_DC_SPEED_LINK4;
 PID_Param	PID_DC_POS_LINK4;
-int AngleLink4;
+float AngleLink4;
 void PID_LINK4_Init()
 {
 	PID_DC_SPEED_LINK4.kP = 50;
-	PID_DC_SPEED_LINK4.kI = 250;
+	PID_DC_SPEED_LINK4.kI = 300;
 	PID_DC_SPEED_LINK4.kD = 0;
 	PID_DC_SPEED_LINK4.alpha = 0;
 	PID_DC_SPEED_LINK4.deltaT = 0.01;
@@ -246,28 +250,22 @@ void PID_LINK4_Pos(){
 //----------------LINK 4------------------//
 
 //--------------Cal Forward Kinematics-----------//
-double theta1_FK = 0, theta2_FK = 0, theta3_FK = 0, theta4_FK = 0, t = 0, theta_FK = 0;
+float theta1_FK = 0, theta2_FK = 0, theta3_FK = 0, theta4_FK = 0, t = 0, theta_FK = 0, psi_FK = 0;
 
-double pre_theta1_FK = 0, pre_theta2_FK = 0, pre_theta3_FK = 0, pre_theta4_FK = 0, pre_theta_FK = 0;
+float pre_theta1_FK = 0, pre_theta2_FK = 0, pre_theta3_FK = 0, pre_theta4_FK = 0, pre_theta_FK = 0;
 
-double px_qd = 0, py_qd = 0, pz_qd = 0, theta_qd = 0, time = 0;
+float px_qd = 0, py_qd = 0, pz_qd = 0, theta_qd = 0, time = 0;
 
-double theta1_FK_rad = 0, theta2_FK_rad = 0, theta3_FK_rad = 0, theta4_FK_rad = 0, theta_FK_rad = 0;
+float theta1_FK_rad = 0, theta2_FK_rad = 0, theta3_FK_rad = 0, theta4_FK_rad = 0, theta_FK_rad, psi_FK_rad = 0;
 
-double Px_FK = 0, Py_FK = 0, Pz_FK = 0;
+float Px_FK = 0, Py_FK = 0, Pz_FK = 0;
 
-double Px_IK = 0, Py_IK = 0, Pz_IK = 0, Theta_IK = 0;
-
-double theta1_IK_rad = 0, theta2_IK_rad = 0, theta3_IK_rad = 0, theta4_IK_rad = 0;
-
-double Theta1_IK = 0, Theta2_IK = 0, Theta3_IK = 0, Theta4_IK = 0;
-
-double L1 = 91, L2 = 122, L3 = 77, L4 = 78, d1 = 233; // đơn vị mm
+float L1 = 91, L2 = 122, L3 = 77, L4 = 78, d1 = 62 + 176; // đơn vị mm
 
 int16_t t1, t2, t3, t4;
 
-double Px, Py, Pz;
-void TINH_FK(double theta1Value, double theta2Value, double theta3Value, double thetaValue) {
+float Px, Py, Pz;
+void TINH_FK(float theta1Value, float theta2Value, float theta3Value, float theta4Value) {
 
 	theta1_FK = theta1Value;
 	theta1_FK_rad = (theta1_FK * M_PI) / 180.0;
@@ -278,143 +276,73 @@ void TINH_FK(double theta1Value, double theta2Value, double theta3Value, double 
 	theta3_FK = theta3Value;
 	theta3_FK_rad = (theta3_FK * M_PI) / 180.0;
 
-	theta_FK = thetaValue;
-	theta_FK_rad = (theta_FK * M_PI) / 180.0;
+	theta4_FK = theta4Value;
+	theta4_FK_rad = (theta4_FK * M_PI) / 180.0;
+
+	psi_FK = theta2_FK + theta3_FK + theta4_FK;
+	psi_FK_rad = theta2_FK_rad + theta3_FK_rad + theta4_FK_rad;
 
 	// Tính toán giá trị Px, Py, Pz
-	Px_FK = cos(theta1_FK_rad) * (L1 + L2 * cos(theta2_FK_rad) + L3 * cos(theta2_FK_rad + theta3_FK_rad) + L4 * cos(theta_FK_rad));
-	Px_FK = round(Px_FK * 10) / 10.0;
+	Px_FK = cos(theta1_FK_rad) * (L1 + L2 * cos(theta2_FK_rad) + L3 * cos(theta2_FK_rad + theta3_FK_rad) + L4 * cos(psi_FK_rad));
 
-	Py_FK = sin(theta1_FK_rad) * (L1 + L2 * cos(theta2_FK_rad) + L3 * cos(theta2_FK_rad + theta3_FK_rad) + L4 * cos(theta_FK_rad));
-	Py_FK = round(Py_FK * 10) / 10.0;
+	Py_FK = sin(theta1_FK_rad) * (L1 + L2 * cos(theta2_FK_rad) + L3 * cos(theta2_FK_rad + theta3_FK_rad) + L4 * cos(psi_FK_rad));
 
-	Pz_FK = d1 + L3 * sin(theta2_FK_rad + theta3_FK_rad) + L2 * sin(theta2_FK_rad) + L4 * sin(theta_FK_rad);
-	Pz_FK = round(Pz_FK * 10) / 10.0;
+	Pz_FK = d1 + L3 * sin(theta2_FK_rad + theta3_FK_rad) + L2 * sin(theta2_FK_rad) + L4 * sin(psi_FK_rad);
 
-	// Tính toán giá trị theta4
-	theta4_FK = theta_FK - theta2_FK - theta3_FK;
 }
-
 //--------------Cal Forward Kinematics-----------//
 
 //--------------Cal Inverse Kinematics-----------//
-void BN1() {
-    double anpha = 0, k = 0, E = 0, F = 0, a = 0, b = 0, d = 0, f = 0, var_temp = 0, c23 = 0, s23 = 0, t_rad = 0;
+float Px_IK = 0, Py_IK = 0, Pz_IK = 0, Theta_IK = 0;
 
-    // Convert Theta_IK from degrees to radians
+float theta1_IK_rad = 0, theta2_IK_rad = 0, theta3_IK_rad = 0, theta4_IK_rad = 0;
+
+float Theta1_IK = 0, Theta2_IK = 0, Theta3_IK = 0, Theta4_IK = 0;
+
+float alpha = 0, k = 0, E = 0, F = 0, a = 0, b = 0, d = 0, f = 0, var_temp = 0, c23 = 0, s23 = 0, t_rad = 0;
+
+void calculate_IK_BN1(float Px_value, float Py_value, float Pz_value, float Theta_value){
+
+    Px_IK = Px_value;
+    Py_IK = Py_value;
+    Pz_IK = Pz_value;
+    Theta_IK = Theta_value;
+
     t_rad = Theta_IK * (M_PI / 180);
-
-    // Calculate k
     k = sqrt(pow(Px_IK, 2) + pow(Py_IK, 2));
-
-    // Theta1 calculation
-    double theta1_IK_rad = atan2((Py_IK / k), (Px_IK / k));
+    theta1_IK_rad = atan2((Py_IK / k), (Px_IK / k));
     Theta1_IK = theta1_IK_rad * (180 / M_PI);
-    Theta1_IK = round(Theta1_IK);
 
-    // Adjust Theta1 within the -180 to 180 degree range
     if (Theta1_IK < -180) {
         Theta1_IK += 360;
     } else if (Theta1_IK > 180) {
         Theta1_IK -= 360;
     }
 
-    // Calculate E and F
     E = Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L4 * cos(t_rad);
     F = Pz_IK - d1 - L4 * sin(t_rad);
-
-    // Calculate a, b, d, f
     a = -2 * L2 * F;
     b = -2 * L2 * E;
     d = pow(L3, 2) - pow(E, 2) - pow(F, 2) - pow(L2, 2);
     f = sqrt(pow(a, 2) + pow(b, 2));
-    anpha = atan2(-2 * L2 * F / f, -2 * L2 * E / f);
+    alpha = atan2(-2 * L2 * F / f, -2 * L2 * E / f);
 
-    // Handle division by zero or invalid sqrt inputs
     var_temp = pow(d, 2) / pow(f, 2);
     if (var_temp > 1) var_temp = 1;
 
-    // Theta2 calculation
-    double theta2_IK_rad = atan2(sqrt(1 - var_temp), d / f) + anpha;
+    theta2_IK_rad = atan2(sqrt(1 - var_temp), d / f) + alpha;
     Theta2_IK = theta2_IK_rad * (180 / M_PI);
-    Theta2_IK = round(Theta2_IK);
 
-    // Adjust Theta2 within the -180 to 180 degree range
     if (Theta2_IK < -180) {
         Theta2_IK += 360;
     } else if (Theta2_IK > 180) {
         Theta2_IK -= 360;
     }
 
-    // Theta3 calculation
     c23 = (Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L2 * cos(theta2_IK_rad) - L4 * cos(t_rad)) / L3;
     s23 = (Pz_IK - d1 - L2 * sin(theta2_IK_rad) - L4 * sin(t_rad)) / L3;
-    double theta3_IK_rad = atan2(s23, c23) - theta2_IK_rad;
+    theta3_IK_rad = atan2(s23, c23) - theta2_IK_rad;
     Theta3_IK = theta3_IK_rad * (180 / M_PI);
-    Theta3_IK = round(Theta3_IK);
-
-    // Adjust Theta3 within the -180 to 180 degree range
-    if (Theta3_IK < -180) {
-        Theta3_IK += 360;
-    } else if (Theta3_IK > 180) {
-        Theta3_IK -= 360;
-    }
-
-    // Theta4 calculation
-    double theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
-    Theta4_IK = theta4_IK_rad * (180 / M_PI);
-    Theta4_IK = round(Theta4_IK);
-}
-
-// Function to compute inverse kinematics for BN2
-void BN2_hut() {
-    double anpha = 0, k = 0, E = 0, F = 0, a = 0, b = 0, d = 0, f = 0, var_temp = 0, c23 = 0, s23 = 0, t_rad = 0;
-
-    // Similar process as BN1 but different Theta2 calculation
-    t_rad = Theta_IK * (M_PI / 180);
-    k = sqrt(pow(Px_IK, 2) + pow(Py_IK, 2));
-    double theta1_IK_rad = atan2((Py_IK / k), (Px_IK / k));
-    Theta1_IK = theta1_IK_rad * (180 / M_PI);
-    Theta1_IK = round(Theta1_IK);
-
-    // Adjust Theta1 within -180 to 180
-    if (Theta1_IK < -180) {
-        Theta1_IK += 360;
-    } else if (Theta1_IK > 180) {
-        Theta1_IK -= 360;
-    }
-
-    // Calculate E and F
-    E = Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L4 * cos(t_rad);
-    F = Pz_IK - d1 - L4 * sin(t_rad);
-
-    a = -2 * L2 * F;
-    b = -2 * L2 * E;
-    d = pow(L3, 2) - pow(E, 2) - pow(F, 2) - pow(L2, 2);
-    f = sqrt(pow(a, 2) + pow(b, 2));
-    anpha = atan2(-2 * L2 * F / f, -2 * L2 * E / f);
-
-    var_temp = pow(d, 2) / pow(f, 2);
-    if (var_temp > 1) var_temp = 1;
-
-    // Different Theta2 calculation
-    double theta2_IK_rad = atan2(-sqrt(1 - var_temp), d / f) + anpha;
-    Theta2_IK = theta2_IK_rad * (180 / M_PI);
-    Theta2_IK = round(Theta2_IK);
-
-    // Adjust Theta2 within -180 to 180
-    if (Theta2_IK < -180) {
-        Theta2_IK += 360;
-    } else if (Theta2_IK > 180) {
-        Theta2_IK -= 360;
-    }
-
-    // Theta3 calculation
-    c23 = (Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L2 * cos(theta2_IK_rad) - L4 * cos(t_rad)) / L3;
-    s23 = (Pz_IK - d1 - L2 * sin(theta2_IK_rad) - L4 * sin(t_rad)) / L3;
-    double theta3_IK_rad = atan2(s23, c23) - theta2_IK_rad;
-    Theta3_IK = theta3_IK_rad * (180 / M_PI);
-    Theta3_IK = round(Theta3_IK);
 
     if (Theta3_IK < -180) {
         Theta3_IK += 360;
@@ -422,139 +350,63 @@ void BN2_hut() {
         Theta3_IK -= 360;
     }
 
-    // Theta4 calculation
-    double theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
+    theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
     Theta4_IK = theta4_IK_rad * (180 / M_PI);
-    Theta4_IK = round(Theta4_IK);
-}
-double round_nearest(double value) {
-    return (value >= 0) ? floor(value + 0.5) : ceil(value - 0.5);
+
 }
 
-void calculate_IK_BN1() {
-    double anpha = 0, k = 0, E = 0, F = 0, a = 0, b = 0, d = 0, f = 0, var_temp = 0, c23 = 0, s23 = 0, t_rad = 0;
+void calculate_IK_BN2(float px_value, float py_value, float pz_value, float Theta_value) {
+
+    Px_IK = px_value;
+    Py_IK = py_value;
+    Pz_IK = pz_value;
+    Theta_IK = Theta_value;
 
     t_rad = Theta_IK * (M_PI / 180);
     k = sqrt(pow(Px_IK, 2) + pow(Py_IK, 2));
-    double theta1_IK_rad = atan2((Py_IK / k), (Px_IK / k));
+    theta1_IK_rad = atan2((Py_IK / k), (Px_IK / k));
     Theta1_IK = theta1_IK_rad * (180 / M_PI);
-    Theta1_IK = round_nearest(Theta1_IK);
 
-    // Adjust Theta1 within -180 to 180
     if (Theta1_IK < -180) {
         Theta1_IK += 360;
     } else if (Theta1_IK > 180) {
         Theta1_IK -= 360;
     }
 
-    // Calculate E and F
     E = Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L4 * cos(t_rad);
     F = Pz_IK - d1 - L4 * sin(t_rad);
 
-    // Calculating variables for Theta2
     a = -2 * L2 * F;
     b = -2 * L2 * E;
     d = pow(L3, 2) - pow(E, 2) - pow(F, 2) - pow(L2, 2);
     f = sqrt(pow(a, 2) + pow(b, 2));
-    anpha = atan2(-2 * L2 * F / f, -2 * L2 * E / f);
+    alpha = atan2(-2 * L2 * F / f, -2 * L2 * E / f);
 
     var_temp = pow(d, 2) / pow(f, 2);
     if (var_temp > 1) var_temp = 1;
 
-    // Theta2 calculation
-    double theta2_IK_rad = atan2(sqrt(1 - var_temp), d / f) + anpha;
+    theta2_IK_rad = atan2(-sqrt(1 - var_temp), d / f) + alpha;
     Theta2_IK = theta2_IK_rad * (180 / M_PI);
-    Theta2_IK = round_nearest(Theta2_IK);
 
-    // Adjust Theta2 within -180 to 180
     if (Theta2_IK < -180) {
         Theta2_IK += 360;
     } else if (Theta2_IK > 180) {
         Theta2_IK -= 360;
     }
 
-    // Theta3 calculation
     c23 = (Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L2 * cos(theta2_IK_rad) - L4 * cos(t_rad)) / L3;
     s23 = (Pz_IK - d1 - L2 * sin(theta2_IK_rad) - L4 * sin(t_rad)) / L3;
-    double theta3_IK_rad = atan2(s23, c23) - theta2_IK_rad;
+    theta3_IK_rad = atan2(s23, c23) - theta2_IK_rad;
     Theta3_IK = theta3_IK_rad * (180 / M_PI);
-    Theta3_IK = round_nearest(Theta3_IK);
 
-    // Adjust Theta3 within -180 to 180
     if (Theta3_IK < -180) {
         Theta3_IK += 360;
     } else if (Theta3_IK > 180) {
         Theta3_IK -= 360;
     }
 
-    // Theta4 calculation
-    double theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
+    theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
     Theta4_IK = theta4_IK_rad * (180 / M_PI);
-    Theta4_IK = round_nearest(Theta4_IK);
-
-}
-
-// Function to compute inverse kinematics for BN2
-void calculate_IK_BN2() {
-    double anpha = 0, k = 0, E = 0, F = 0, a = 0, b = 0, d = 0, f = 0, var_temp = 0, c23 = 0, s23 = 0, t_rad = 0;
-
-    t_rad = Theta_IK * (M_PI / 180);
-    k = sqrt(pow(Px_IK, 2) + pow(Py_IK, 2));
-    double theta1_IK_rad = atan2((Py_IK / k), (Px_IK / k));
-    Theta1_IK = theta1_IK_rad * (180 / M_PI);
-    Theta1_IK = round_nearest(Theta1_IK);
-
-    // Adjust Theta1 within -180 to 180
-    if (Theta1_IK < -180) {
-        Theta1_IK += 360;
-    } else if (Theta1_IK > 180) {
-        Theta1_IK -= 360;
-    }
-
-    // Calculate E and F
-    E = Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L4 * cos(t_rad);
-    F = Pz_IK - d1 - L4 * sin(t_rad);
-
-    // Calculate variables for Theta2
-    a = -2 * L2 * F;
-    b = -2 * L2 * E;
-    d = pow(L3, 2) - pow(E, 2) - pow(F, 2) - pow(L2, 2);
-    f = sqrt(pow(a, 2) + pow(b, 2));
-    anpha = atan2(-2 * L2 * F / f, -2 * L2 * E / f);
-
-    var_temp = pow(d, 2) / pow(f, 2);
-    if (var_temp > 1) var_temp = 1;
-
-    // Theta2 calculation for BN2
-    double theta2_IK_rad = atan2(-sqrt(1 - var_temp), d / f) + anpha;
-    Theta2_IK = theta2_IK_rad * (180 / M_PI);
-    Theta2_IK = round_nearest(Theta2_IK);
-
-    // Adjust Theta2 within -180 to 180
-    if (Theta2_IK < -180) {
-        Theta2_IK += 360;
-    } else if (Theta2_IK > 180) {
-        Theta2_IK -= 360;
-    }
-
-    // Theta3 calculation
-    c23 = (Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L2 * cos(theta2_IK_rad) - L4 * cos(t_rad)) / L3;
-    s23 = (Pz_IK - d1 - L2 * sin(theta2_IK_rad) - L4 * sin(t_rad)) / L3;
-    double theta3_IK_rad = atan2(s23, c23) - theta2_IK_rad;
-    Theta3_IK = theta3_IK_rad * (180 / M_PI);
-    Theta3_IK = round_nearest(Theta3_IK);
-
-    // Adjust Theta3 within -180 to 180
-    if (Theta3_IK < -180) {
-        Theta3_IK += 360;
-    } else if (Theta3_IK > 180) {
-        Theta3_IK -= 360;
-    }
-
-    // Theta4 calculation
-    double theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
-    Theta4_IK = theta4_IK_rad * (180 / M_PI);
-    Theta4_IK = round_nearest(Theta4_IK);
 }
 //--------------Cal Inverse Kinematics-----------//
 
@@ -614,7 +466,7 @@ int main(void)
   EncoderSetting(&ENC_LINK1, &htim1, 6950, 0.01);
   EncoderSetting(&ENC_LINK2, &htim2, 3250, 0.01);
   EncoderSetting(&ENC_LINK3, &htim3, 6880, 0.01);
-  EncoderSetting(&ENC_LINK4, &htim5, 3350, 0.01);
+  EncoderSetting(&ENC_LINK4, &htim5, 3220, 0.01);
 
   PID_LINK1_Init();
   PID_LINK2_Init();
@@ -1139,7 +991,19 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	if(startProgram == 1){
+		if(startFK == 1){
+			TINH_FK(inputTheta1, inputTheta2, inputTheta3, inputTheta4);
+		}
+		if(startIK_BN1 == 1){
+			calculate_IK_BN1(inputPx, inputPy, inputPz, inputTheta);
+		}
+		if(startIK_BN2 == 1){
+			calculate_IK_BN2(inputPx, inputPy, inputPz, inputTheta);
+		}
+	}
+//	TINH_FK(inputTheta1, inputTheta2, inputTheta3, inputTheta4);
+    osDelay(10);
   }
   /* USER CODE END 5 */
 }
@@ -1151,7 +1015,6 @@ void StartDefaultTask(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_StartTaskSetHome */
-int sensor1, sensor2, sensor3, sensor4;
 void StartTaskSetHome(void const * argument)
 {
   /* USER CODE BEGIN StartTaskSetHome */
@@ -1176,7 +1039,7 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-				SpeedSetHomeJ1 = 400;
+				SpeedSetHomeJ1 = -400;
 				if(CountRead(&ENC_LINK1, count_ModeDegree) > 90 && SpeedSetHomeJ1 > 0){
 					SpeedSetHomeJ1 *= -1;
 				}
@@ -1197,8 +1060,7 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-				SpeedSetHomeJ2 = -400;
-				if(CountRead(&ENC_LINK2, count_ModeDegree) > 10) SpeedSetHomeJ2 *= -1;
+				SpeedSetHomeJ2 = 400;
 				Drive(&Motor_LINK2, &htim4, SpeedSetHomeJ2, TIM_CHANNEL_3, TIM_CHANNEL_4);
 			}
 		}
@@ -1212,8 +1074,7 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-				SpeedSetHomeJ3 = 300;
-				if(CountRead(&ENC_LINK3, count_ModeDegree) > 10) SpeedSetHomeJ3 *= -1;
+				SpeedSetHomeJ3 = -300;
 				Drive(&Motor_LINK3, &htim4, SpeedSetHomeJ3, TIM_CHANNEL_1, TIM_CHANNEL_2);
 			}
 		}
@@ -1228,8 +1089,7 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-				SpeedSetHomeJ4 = -300;
-				if(CountRead(&ENC_LINK4, count_ModeDegree) > 10) SpeedSetHomeJ4 *= -1;
+				SpeedSetHomeJ4 = 300;
 				Drive(&Motor_LINK4, &htim9, SpeedSetHomeJ4, TIM_CHANNEL_1, TIM_CHANNEL_2);
 			}
 		}
@@ -1259,11 +1119,19 @@ void StartTaskPID(void const * argument)
 	  if(sethomeJ2 == 1)	PID_LINK2_Pos();
 	  if(sethomeJ3 == 1)	PID_LINK3_Pos();
 	  if(sethomeJ4 == 1)	PID_LINK4_Pos();
-//	  if(startProgram == 1){
-//		  PID_LINK2_Pos();
-//		  PID_LINK3_Pos();
-//		  PID_LINK4_Pos();
-//	  }
+
+	  if(startFK == 1){
+		  AngleLink1 = inputTheta1;
+		  AngleLink2 = inputTheta2;
+		  AngleLink3 = inputTheta3;
+		  AngleLink4 = inputTheta4;
+	  }
+	  if(startIK_BN1 == 1 || startIK_BN2 == 1){
+		  AngleLink1 = Theta1_IK;
+		  AngleLink2 = Theta2_IK;
+		  AngleLink3 = Theta3_IK;
+		  AngleLink4 = Theta4_IK;
+	  }
 	  osDelay(10);
   }
   /* USER CODE END StartTaskPID */
