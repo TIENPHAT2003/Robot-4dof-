@@ -56,6 +56,8 @@ TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
 
+UART_HandleTypeDef huart2;
+
 osThreadId defaultTaskHandle;
 osThreadId TaskSetHomeHandle;
 osThreadId TaskCalPIDHandle;
@@ -73,24 +75,61 @@ static void MX_TIM3_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM9_Init(void);
+static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void StartTaskSetHome(void const * argument);
 void StartTaskPID(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
+#define L1 		91
+#define L2		122
+#define L3		77
+#define L4		78
+#define d1		(62 + 176)
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 //----------------GLOBAL VARIABLE------------------//
-uint8_t startProgram, startFK, startIK_BN1, startIK_BN2;
-int SpeedSetHomeJ1, SpeedSetHomeJ2, SpeedSetHomeJ3, SpeedSetHomeJ4;
-uint8_t sethomeJ1, sethomeJ2, sethomeJ3, sethomeJ4;
-float inputTheta1, inputTheta2, inputTheta3, inputTheta4;
-float inputPx, inputPy, inputPz, inputTheta;
-int8_t sensor1, sensor2, sensor3, sensor4;
+typedef struct{
+	uint8_t startProgram;
+	uint8_t startFK;
+	uint8_t startIK_BN1;
+	uint8_t startIK_BN2;
+}FlagStart_;
+FlagStart_ FlagStart;
 
+typedef struct{
+	int16_t SpeedSetHomeJ1;
+	int16_t SpeedSetHomeJ2;
+	int16_t SpeedSetHomeJ3;
+	int16_t SpeedSetHomeJ4;
+}SpeedSetHomeJ_;
+SpeedSetHomeJ_ SpeedSetHomeJ;
+
+typedef struct{
+	uint8_t sethomeJ1;
+	uint8_t sethomeJ2;
+	uint8_t sethomeJ3;
+	uint8_t sethomeJ4;
+}sethomeJ_;
+sethomeJ_ sethomeJ;
+
+typedef struct{
+	int8_t sensor1;
+	int8_t sensor2;
+	int8_t sensor3;
+	int8_t sensor4;
+}sensor_;
+sensor_ sensor;
+
+typedef struct{
+	float AngleLink1;
+	float AngleLink2;
+	float AngleLink3;
+	float AngleLink4;
+}Angle_;
+Angle_ Angle;
 //----------------GLOBAL VARIABLE------------------//
 
 //----------------LINK1------------------//
@@ -98,7 +137,6 @@ EncoderRead ENC_LINK1;
 MotorDrive 	Motor_LINK1;
 PID_Param	PID_DC_SPEED_LINK1;
 PID_Param	PID_DC_POS_LINK1;
-float AngleLink1;
 void PID_LINK1_Init()
 {
 	PID_DC_SPEED_LINK1.kP = 50;
@@ -127,7 +165,7 @@ void PID_LINK1_Speed(){
 	Drive(&Motor_LINK1, &htim8, PID_DC_SPEED_LINK1.u, TIM_CHANNEL_3, TIM_CHANNEL_4);
 }
 void PID_LINK1_Pos(){
-	Pid_Cal(&PID_DC_POS_LINK1, AngleLink1, CountRead(&ENC_LINK1, count_ModeDegree));
+	Pid_Cal(&PID_DC_POS_LINK1, Angle.AngleLink1, CountRead(&ENC_LINK1, count_ModeDegree));
 	PID_LINK1_Speed();
 }
 //----------------LINK1------------------//
@@ -137,7 +175,6 @@ EncoderRead ENC_LINK2;
 MotorDrive 	Motor_LINK2;
 PID_Param	PID_DC_SPEED_LINK2;
 PID_Param	PID_DC_POS_LINK2;
-float AngleLink2;
 void PID_LINK2_Init()
 {
 	PID_DC_SPEED_LINK2.kP = 50;
@@ -166,7 +203,7 @@ void PID_LINK2_Speed(){
 	Drive(&Motor_LINK2, &htim4, PID_DC_SPEED_LINK2.u, TIM_CHANNEL_3, TIM_CHANNEL_4);
 }
 void PID_LINK2_Pos(){
-	Pid_Cal(&PID_DC_POS_LINK2, AngleLink2 -187, CountRead(&ENC_LINK2, count_ModeDegree));
+	Pid_Cal(&PID_DC_POS_LINK2, Angle.AngleLink2 -187, CountRead(&ENC_LINK2, count_ModeDegree));
 	PID_LINK2_Speed();
 }
 //----------------LINK 2------------------//
@@ -176,7 +213,6 @@ EncoderRead ENC_LINK3;
 MotorDrive 	Motor_LINK3;
 PID_Param	PID_DC_SPEED_LINK3;
 PID_Param	PID_DC_POS_LINK3;
-float AngleLink3;
 void PID_LINK3_Init()
 {
 	PID_DC_SPEED_LINK3.kP = 50;
@@ -205,7 +241,7 @@ void PID_LINK3_Speed(){
 	Drive(&Motor_LINK3, &htim4, PID_DC_SPEED_LINK3.u, TIM_CHANNEL_1, TIM_CHANNEL_2);
 }
 void PID_LINK3_Pos(){
-	Pid_Cal(&PID_DC_POS_LINK3, AngleLink3 + 135, CountRead(&ENC_LINK3, count_ModeDegree));
+	Pid_Cal(&PID_DC_POS_LINK3, Angle.AngleLink3 + 135, CountRead(&ENC_LINK3, count_ModeDegree));
 	PID_LINK3_Speed();
 }
 //----------------LINK 3------------------//
@@ -215,7 +251,6 @@ EncoderRead ENC_LINK4;
 MotorDrive 	Motor_LINK4;
 PID_Param	PID_DC_SPEED_LINK4;
 PID_Param	PID_DC_POS_LINK4;
-float AngleLink4;
 void PID_LINK4_Init()
 {
 	PID_DC_SPEED_LINK4.kP = 50;
@@ -244,171 +279,233 @@ void PID_LINK4_Speed(){
 	Drive(&Motor_LINK4, &htim9, PID_DC_SPEED_LINK4.u, TIM_CHANNEL_1, TIM_CHANNEL_2);
 }
 void PID_LINK4_Pos(){
-	Pid_Cal(&PID_DC_POS_LINK4, AngleLink4 - 90, CountRead(&ENC_LINK4, count_ModeDegree));
+	Pid_Cal(&PID_DC_POS_LINK4, Angle.AngleLink4 - 90, CountRead(&ENC_LINK4, count_ModeDegree));
 	PID_LINK4_Speed();
 }
 //----------------LINK 4------------------//
 
 //--------------Cal Forward Kinematics-----------//
-float theta1_FK = 0, theta2_FK = 0, theta3_FK = 0, theta4_FK = 0, t = 0, theta_FK = 0, psi_FK = 0;
+typedef struct{
+	float inputTheta1;
+	float inputTheta2;
+	float inputTheta3;
+	float inputTheta4;
+}InputFK_;
+InputFK_ InputFK;
+
+typedef struct{
+	float theta1_FK;
+	float theta2_FK;
+	float theta3_FK;
+	float theta4_FK;
+	float theta_Fk;
+	float psi_FK;
+
+	float theta1_FK_rad;
+	float theta2_FK_rad;
+	float theta3_FK_rad;
+	float theta4_FK_rad;
+	float theta_FK_rad;
+	float psi_FK_rad;
+
+	float Px_FK;
+	float Py_FK;
+	float Pz_FK;
+
+}ForwardKinematics_;
+
+ForwardKinematics_ FK;
 
 float pre_theta1_FK = 0, pre_theta2_FK = 0, pre_theta3_FK = 0, pre_theta4_FK = 0, pre_theta_FK = 0;
 
 float px_qd = 0, py_qd = 0, pz_qd = 0, theta_qd = 0, time = 0;
 
-float theta1_FK_rad = 0, theta2_FK_rad = 0, theta3_FK_rad = 0, theta4_FK_rad = 0, theta_FK_rad, psi_FK_rad = 0;
-
-float Px_FK = 0, Py_FK = 0, Pz_FK = 0;
-
-float L1 = 91, L2 = 122, L3 = 77, L4 = 78, d1 = 62 + 176; // đơn vị mm
-
 int16_t t1, t2, t3, t4;
 
-float Px, Py, Pz;
-void TINH_FK(float theta1Value, float theta2Value, float theta3Value, float theta4Value) {
+void calculate_FK(ForwardKinematics_ *FK ,float theta1Value, float theta2Value, float theta3Value, float theta4Value) {
 
-	theta1_FK = theta1Value;
-	theta1_FK_rad = (theta1_FK * M_PI) / 180.0;
+	FK->theta1_FK = theta1Value;
+	FK->theta1_FK_rad = (FK->theta1_FK * M_PI) / 180.0;
 
-	theta2_FK = theta2Value;
-	theta2_FK_rad = (theta2_FK * M_PI) / 180.0;
+	FK->theta2_FK = theta2Value;
+	FK->theta2_FK_rad = (FK->theta2_FK * M_PI) / 180.0;
 
-	theta3_FK = theta3Value;
-	theta3_FK_rad = (theta3_FK * M_PI) / 180.0;
+	FK->theta3_FK = theta3Value;
+	FK->theta3_FK_rad = (FK->theta3_FK * M_PI) / 180.0;
 
-	theta4_FK = theta4Value;
-	theta4_FK_rad = (theta4_FK * M_PI) / 180.0;
+	FK->theta4_FK = theta4Value;
+	FK->theta4_FK_rad = (FK->theta4_FK * M_PI) / 180.0;
 
-	psi_FK = theta2_FK + theta3_FK + theta4_FK;
-	psi_FK_rad = theta2_FK_rad + theta3_FK_rad + theta4_FK_rad;
+	FK->psi_FK = FK->theta2_FK + FK->theta3_FK + FK->theta4_FK;
+	FK->psi_FK_rad = FK->theta2_FK_rad + FK->theta3_FK_rad + FK->theta4_FK_rad;
 
 	// Tính toán giá trị Px, Py, Pz
-	Px_FK = cos(theta1_FK_rad) * (L1 + L2 * cos(theta2_FK_rad) + L3 * cos(theta2_FK_rad + theta3_FK_rad) + L4 * cos(psi_FK_rad));
+	FK->Px_FK = cos(FK->theta1_FK_rad) * (L1 + L2 * cos(FK->theta2_FK_rad) + L3 * cos(FK->theta2_FK_rad + FK->theta3_FK_rad) + L4 * cos(FK->psi_FK_rad));
 
-	Py_FK = sin(theta1_FK_rad) * (L1 + L2 * cos(theta2_FK_rad) + L3 * cos(theta2_FK_rad + theta3_FK_rad) + L4 * cos(psi_FK_rad));
+	FK->Py_FK = sin(FK->theta1_FK_rad) * (L1 + L2 * cos(FK->theta2_FK_rad) + L3 * cos(FK->theta2_FK_rad + FK->theta3_FK_rad) + L4 * cos(FK->psi_FK_rad));
 
-	Pz_FK = d1 + L3 * sin(theta2_FK_rad + theta3_FK_rad) + L2 * sin(theta2_FK_rad) + L4 * sin(psi_FK_rad);
+	FK->Pz_FK = d1 + L3 * sin(FK->theta2_FK_rad + FK->theta3_FK_rad) + L2 * sin(FK->theta2_FK_rad) + L4 * sin(FK->psi_FK_rad);
 
 }
 //--------------Cal Forward Kinematics-----------//
 
 //--------------Cal Inverse Kinematics-----------//
-float Px_IK = 0, Py_IK = 0, Pz_IK = 0, Theta_IK = 0;
+typedef struct{
+	float Px_IK;
+	float Py_IK;
+	float Pz_IK;
 
-float theta1_IK_rad = 0, theta2_IK_rad = 0, theta3_IK_rad = 0, theta4_IK_rad = 0;
+	float Theta1_IK;
+	float Theta2_IK;
+	float Theta3_IK;
+	float Theta4_IK;
+	float Theta_IK;
 
-float Theta1_IK = 0, Theta2_IK = 0, Theta3_IK = 0, Theta4_IK = 0;
+	float theta1_IK_rad;
+	float theta2_IK_rad;
+	float theta3_IK_rad;
+	float theta4_IK_rad;
 
-float alpha = 0, k = 0, E = 0, F = 0, a = 0, b = 0, d = 0, f = 0, var_temp = 0, c23 = 0, s23 = 0, t_rad = 0;
+	float alpha;
+	float k;
+	float E;
+	float F;
+	float a;
+	float b;
+	float d;
+	float f;
+	float var_temp;
+	float c23;
+	float s23;
+	float t_rad;
 
-void calculate_IK_BN1(float Px_value, float Py_value, float Pz_value, float Theta_value){
+}InverseKinematics_;
 
-    Px_IK = Px_value;
-    Py_IK = Py_value;
-    Pz_IK = Pz_value;
-    Theta_IK = Theta_value;
+InverseKinematics_ IK;
 
-    t_rad = Theta_IK * (M_PI / 180);
-    k = sqrt(pow(Px_IK, 2) + pow(Py_IK, 2));
-    theta1_IK_rad = atan2((Py_IK / k), (Px_IK / k));
-    Theta1_IK = theta1_IK_rad * (180 / M_PI);
+typedef struct{
+	float inputPx;
+	float inputPy;
+	float inputPz;
+	float inputTheta;
+}InputIK_;
+InputIK_ InputIK;
 
-    if (Theta1_IK < -180) {
-        Theta1_IK += 360;
-    } else if (Theta1_IK > 180) {
-        Theta1_IK -= 360;
+void calculate_IK_BN1(InverseKinematics_ *IK,float Px_value, float Py_value, float Pz_value, float Theta_value){
+
+    IK->Px_IK = Px_value;
+    IK->Py_IK = Py_value;
+    IK->Pz_IK = Pz_value;
+    IK->Theta_IK = Theta_value;
+
+    IK->t_rad = IK->Theta_IK * (M_PI / 180);
+    IK->k = sqrt(pow(IK->Px_IK, 2) + pow(IK->Py_IK, 2));
+    IK->theta1_IK_rad = atan2((IK->Py_IK / IK->k), (IK->Px_IK / IK->k));
+    IK->Theta1_IK = IK->theta1_IK_rad * (180 / M_PI);
+
+    if (IK->Theta1_IK < -180) {
+    	IK->Theta1_IK += 360;
+    } else if (IK->Theta1_IK > 180) {
+    	IK->Theta1_IK -= 360;
     }
 
-    E = Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L4 * cos(t_rad);
-    F = Pz_IK - d1 - L4 * sin(t_rad);
-    a = -2 * L2 * F;
-    b = -2 * L2 * E;
-    d = pow(L3, 2) - pow(E, 2) - pow(F, 2) - pow(L2, 2);
-    f = sqrt(pow(a, 2) + pow(b, 2));
-    alpha = atan2(-2 * L2 * F / f, -2 * L2 * E / f);
+    IK->E = IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L4 * cos(IK->t_rad);
+    IK->F = IK->Pz_IK - d1 - L4 * sin(IK->t_rad);
+    IK->a = -2 * L2 * IK->F;
+    IK->b = -2 * L2 * IK->E;
+    IK->d = pow(L3, 2) - pow(IK->E, 2) - pow(IK->F, 2) - pow(L2, 2);
+    IK->f = sqrt(pow(IK->a, 2) + pow(IK->b, 2));
+    IK->alpha = atan2(-2 * L2 * IK->F / IK->f, -2 * L2 * IK->E / IK->f);
 
-    var_temp = pow(d, 2) / pow(f, 2);
-    if (var_temp > 1) var_temp = 1;
+    IK->var_temp = pow(IK->d, 2) / pow(IK->f, 2);
+    if (IK->var_temp > 1) IK->var_temp = 1;
 
-    theta2_IK_rad = atan2(sqrt(1 - var_temp), d / f) + alpha;
-    Theta2_IK = theta2_IK_rad * (180 / M_PI);
+    IK->theta2_IK_rad = atan2(sqrt(1 - IK->var_temp), IK->d / IK->f) + IK->alpha;
+    IK->Theta2_IK = IK->theta2_IK_rad * (180 / M_PI);
 
-    if (Theta2_IK < -180) {
-        Theta2_IK += 360;
-    } else if (Theta2_IK > 180) {
-        Theta2_IK -= 360;
+    if (IK->Theta2_IK < -180) {
+    	IK->Theta2_IK += 360;
+    } else if (IK->Theta2_IK > 180) {
+    	IK->Theta2_IK -= 360;
     }
 
-    c23 = (Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L2 * cos(theta2_IK_rad) - L4 * cos(t_rad)) / L3;
-    s23 = (Pz_IK - d1 - L2 * sin(theta2_IK_rad) - L4 * sin(t_rad)) / L3;
-    theta3_IK_rad = atan2(s23, c23) - theta2_IK_rad;
-    Theta3_IK = theta3_IK_rad * (180 / M_PI);
+    IK->c23 = (IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L2 * cos(IK->theta2_IK_rad) - L4 * cos(IK->t_rad)) / L3;
+    IK->s23 = (IK->Pz_IK - d1 - L2 * sin(IK->theta2_IK_rad) - L4 * sin(IK->t_rad)) / L3;
+    IK->theta3_IK_rad = atan2(IK->s23, IK->c23) - IK->theta2_IK_rad;
+    IK->Theta3_IK = IK->theta3_IK_rad * (180 / M_PI);
 
-    if (Theta3_IK < -180) {
-        Theta3_IK += 360;
-    } else if (Theta3_IK > 180) {
-        Theta3_IK -= 360;
+    if (IK->Theta3_IK < -180) {
+    	IK->Theta3_IK += 360;
+    } else if (IK->Theta3_IK > 180) {
+    	IK->Theta3_IK -= 360;
     }
 
-    theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
-    Theta4_IK = theta4_IK_rad * (180 / M_PI);
+    IK->theta4_IK_rad = IK->t_rad - IK->theta2_IK_rad - IK->theta3_IK_rad;
+    IK->Theta4_IK = IK->theta4_IK_rad * (180 / M_PI);
 
 }
 
-void calculate_IK_BN2(float px_value, float py_value, float pz_value, float Theta_value) {
+void calculate_IK_BN2(InverseKinematics_ *IK,float px_value, float py_value, float pz_value, float Theta_value) {
 
-    Px_IK = px_value;
-    Py_IK = py_value;
-    Pz_IK = pz_value;
-    Theta_IK = Theta_value;
+	IK->Px_IK = px_value;
+	IK->Py_IK = py_value;
+	IK->Pz_IK = pz_value;
+	IK->Theta_IK = Theta_value;
 
-    t_rad = Theta_IK * (M_PI / 180);
-    k = sqrt(pow(Px_IK, 2) + pow(Py_IK, 2));
-    theta1_IK_rad = atan2((Py_IK / k), (Px_IK / k));
-    Theta1_IK = theta1_IK_rad * (180 / M_PI);
+	IK->t_rad = IK->Theta_IK * (M_PI / 180);
+	IK->k = sqrt(pow(IK->Px_IK, 2) + pow(IK->Py_IK, 2));
+	IK->theta1_IK_rad = atan2((IK->Py_IK / IK->k), (IK->Px_IK / IK->k));
+	IK->Theta1_IK = IK->theta1_IK_rad * (180 / M_PI);
 
-    if (Theta1_IK < -180) {
-        Theta1_IK += 360;
-    } else if (Theta1_IK > 180) {
-        Theta1_IK -= 360;
+    if (IK->Theta1_IK < -180) {
+    	IK->Theta1_IK += 360;
+    } else if (IK->Theta1_IK > 180) {
+    	IK->Theta1_IK -= 360;
     }
 
-    E = Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L4 * cos(t_rad);
-    F = Pz_IK - d1 - L4 * sin(t_rad);
+    IK->E = IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L4 * cos(IK->t_rad);
+    IK->F = IK->Pz_IK - d1 - L4 * sin(IK->t_rad);
 
-    a = -2 * L2 * F;
-    b = -2 * L2 * E;
-    d = pow(L3, 2) - pow(E, 2) - pow(F, 2) - pow(L2, 2);
-    f = sqrt(pow(a, 2) + pow(b, 2));
-    alpha = atan2(-2 * L2 * F / f, -2 * L2 * E / f);
+    IK->a = -2 * L2 * IK->F;
+    IK->b = -2 * L2 * IK->E;
+    IK->d = pow(L3, 2) - pow(IK->E, 2) - pow(IK->F, 2) - pow(L2, 2);
+    IK->f = sqrt(pow(IK->a, 2) + pow(IK->b, 2));
+    IK->alpha = atan2(-2 * L2 * IK->F / IK->f, -2 * L2 * IK->E / IK->f);
 
-    var_temp = pow(d, 2) / pow(f, 2);
-    if (var_temp > 1) var_temp = 1;
+    IK->var_temp = pow(IK->d, 2) / pow(IK->f, 2);
+    if (IK->var_temp > 1) IK->var_temp = 1;
 
-    theta2_IK_rad = atan2(-sqrt(1 - var_temp), d / f) + alpha;
-    Theta2_IK = theta2_IK_rad * (180 / M_PI);
+    IK->theta2_IK_rad = atan2(-sqrt(1 - IK->var_temp), IK->d / IK->f) + IK->alpha;
+    IK->Theta2_IK = IK->theta2_IK_rad * (180 / M_PI);
 
-    if (Theta2_IK < -180) {
-        Theta2_IK += 360;
-    } else if (Theta2_IK > 180) {
-        Theta2_IK -= 360;
+    if (IK->Theta2_IK < -180) {
+    	IK->Theta2_IK += 360;
+    } else if (IK->Theta2_IK > 180) {
+    	IK->Theta2_IK -= 360;
     }
 
-    c23 = (Px_IK * cos(theta1_IK_rad) + Py_IK * sin(theta1_IK_rad) - L1 - L2 * cos(theta2_IK_rad) - L4 * cos(t_rad)) / L3;
-    s23 = (Pz_IK - d1 - L2 * sin(theta2_IK_rad) - L4 * sin(t_rad)) / L3;
-    theta3_IK_rad = atan2(s23, c23) - theta2_IK_rad;
-    Theta3_IK = theta3_IK_rad * (180 / M_PI);
+    IK->c23 = (IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L2 * cos(IK->theta2_IK_rad) - L4 * cos(IK->t_rad)) / L3;
+    IK->s23 = (IK->Pz_IK - d1 - L2 * sin(IK->theta2_IK_rad) - L4 * sin(IK->t_rad)) / L3;
+    IK->theta3_IK_rad = atan2(IK->s23, IK->c23) - IK->theta2_IK_rad;
+    IK->Theta3_IK = IK->theta3_IK_rad * (180 / M_PI);
 
-    if (Theta3_IK < -180) {
-        Theta3_IK += 360;
-    } else if (Theta3_IK > 180) {
-        Theta3_IK -= 360;
+    if (IK->Theta3_IK < -180) {
+    	IK->Theta3_IK += 360;
+    } else if (IK->Theta3_IK > 180) {
+    	IK->Theta3_IK -= 360;
     }
 
-    theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
-    Theta4_IK = theta4_IK_rad * (180 / M_PI);
+    IK->theta4_IK_rad = IK->t_rad - IK->theta2_IK_rad - IK->theta3_IK_rad;
+    IK->Theta4_IK = IK->theta4_IK_rad * (180 / M_PI);
 }
 //--------------Cal Inverse Kinematics-----------//
+float T1, T2, T3, T4;
+float Tf=3000;
+
+float p(float p0, float pf, float tf, float v0, float vf, float T)
+{
+    return p0+v0*T+(3*(pf-p0)/(tf*tf)-2*v0/tf-vf/tf)*(T*T)+(-2*(pf-p0)/(tf*tf*tf)+(vf+v0)/(tf*tf))*(T*T*T);
+}
 
 /* USER CODE END 0 */
 
@@ -447,6 +544,7 @@ int main(void)
   MX_TIM5_Init();
   MX_TIM8_Init();
   MX_TIM9_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
@@ -942,6 +1040,39 @@ static void MX_TIM9_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -991,18 +1122,17 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	if(startProgram == 1){
-		if(startFK == 1){
-			TINH_FK(inputTheta1, inputTheta2, inputTheta3, inputTheta4);
+	if(FlagStart.startProgram == 1){
+		if(FlagStart.startFK == 1){
+			calculate_FK(&FK, InputFK.inputTheta1, InputFK.inputTheta2, InputFK.inputTheta3, InputFK.inputTheta4);
 		}
-		if(startIK_BN1 == 1){
-			calculate_IK_BN1(inputPx, inputPy, inputPz, inputTheta);
+		if(FlagStart.startIK_BN1 == 1){
+			calculate_IK_BN1(&IK, InputIK.inputPx, InputIK.inputPy, InputIK.inputPz, InputIK.inputTheta);
 		}
-		if(startIK_BN2 == 1){
-			calculate_IK_BN2(inputPx, inputPy, inputPz, inputTheta);
+		if(FlagStart.startIK_BN2 == 1){
+			calculate_IK_BN2(&IK, InputIK.inputPx, InputIK.inputPy, InputIK.inputPz, InputIK.inputTheta);
 		}
 	}
-//	TINH_FK(inputTheta1, inputTheta2, inputTheta3, inputTheta4);
     osDelay(10);
   }
   /* USER CODE END 5 */
@@ -1019,82 +1149,82 @@ void StartTaskSetHome(void const * argument)
 {
   /* USER CODE BEGIN StartTaskSetHome */
   /* Infinite loop */
-  startProgram = 0;
   for(;;)
   {
-	sensor1 = HAL_GPIO_ReadPin(Sensor_J1_GPIO_Port, Sensor_J1_Pin);
-	sensor2 = HAL_GPIO_ReadPin(Sensor_J2_GPIO_Port, Sensor_J2_Pin);
-	sensor3 = HAL_GPIO_ReadPin(Sensor_J3_GPIO_Port, Sensor_J3_Pin);
-	sensor4 = HAL_GPIO_ReadPin(Sensor_J4_GPIO_Port, Sensor_J4_Pin);
+	sensor.sensor1 = HAL_GPIO_ReadPin(Sensor_J1_GPIO_Port, Sensor_J1_Pin);
+	sensor.sensor2 = HAL_GPIO_ReadPin(Sensor_J2_GPIO_Port, Sensor_J2_Pin);
+	sensor.sensor3 = HAL_GPIO_ReadPin(Sensor_J3_GPIO_Port, Sensor_J3_Pin);
+	sensor.sensor4 = HAL_GPIO_ReadPin(Sensor_J4_GPIO_Port, Sensor_J4_Pin);
 
-	if(startProgram == 0){
-		if(sethomeJ1 == 0){
+	if(FlagStart.startProgram == 0){
+		if(sethomeJ.sethomeJ1 == 0){
 			if(HAL_GPIO_ReadPin(Sensor_J1_GPIO_Port, Sensor_J1_Pin) == 1){
 				osDelay(1);
 				if(HAL_GPIO_ReadPin(Sensor_J1_GPIO_Port, Sensor_J1_Pin) == 1){
 					ResetCount(&ENC_LINK1, 1);
-					SpeedSetHomeJ1 = 0;
-					sethomeJ1 = 1;
-					AngleLink1 = 0;
+					SpeedSetHomeJ.SpeedSetHomeJ1 = 0;
+					sethomeJ.sethomeJ1 = 1;
+					Angle.AngleLink1 = 0;
 				}
 			}
 			else {
-				SpeedSetHomeJ1 = -400;
-				if(CountRead(&ENC_LINK1, count_ModeDegree) > 90 && SpeedSetHomeJ1 > 0){
-					SpeedSetHomeJ1 *= -1;
+				SpeedSetHomeJ.SpeedSetHomeJ1 = -400;
+				if(CountRead(&ENC_LINK1, count_ModeDegree) > 90 && SpeedSetHomeJ.SpeedSetHomeJ1 > 0){
+					SpeedSetHomeJ.SpeedSetHomeJ1 *= -1;
 				}
-				else if(CountRead(&ENC_LINK1, count_ModeDegree) < -90 && SpeedSetHomeJ1 < 0) {
-					SpeedSetHomeJ1 *= -1;
+				else if(CountRead(&ENC_LINK1, count_ModeDegree) < -90 && SpeedSetHomeJ.SpeedSetHomeJ1 < 0) {
+					SpeedSetHomeJ.SpeedSetHomeJ1 *= -1;
 				}
-				Drive(&Motor_LINK1, &htim8, SpeedSetHomeJ1, TIM_CHANNEL_3, TIM_CHANNEL_4);
+				Drive(&Motor_LINK1, &htim8, SpeedSetHomeJ.SpeedSetHomeJ1, TIM_CHANNEL_3, TIM_CHANNEL_4);
 			}
 		}
-		if(sethomeJ2 == 0){
+		if(sethomeJ.sethomeJ2 == 0){
 			if(HAL_GPIO_ReadPin(Sensor_J2_GPIO_Port, Sensor_J2_Pin) == 1){
 				osDelay(1);
 				if(HAL_GPIO_ReadPin(Sensor_J2_GPIO_Port, Sensor_J2_Pin) == 1){
 					ResetCount(&ENC_LINK2, 1);
-					SpeedSetHomeJ2 = 0;
-					sethomeJ2 = 1;
-					AngleLink2 = 187;
+					SpeedSetHomeJ.SpeedSetHomeJ2 = 0;
+					sethomeJ.sethomeJ2 = 1;
+					Angle.AngleLink2 = 187;
 				}
 			}
 			else {
-				SpeedSetHomeJ2 = 400;
-				Drive(&Motor_LINK2, &htim4, SpeedSetHomeJ2, TIM_CHANNEL_3, TIM_CHANNEL_4);
+				SpeedSetHomeJ.SpeedSetHomeJ2 = 400;
+				Drive(&Motor_LINK2, &htim4, SpeedSetHomeJ.SpeedSetHomeJ2, TIM_CHANNEL_3, TIM_CHANNEL_4);
 			}
 		}
-		if(sethomeJ3 == 0){
+		if(sethomeJ.sethomeJ3 == 0){
 			if(HAL_GPIO_ReadPin(Sensor_J3_GPIO_Port, Sensor_J3_Pin) == 0){
 				osDelay(1);
 				if(HAL_GPIO_ReadPin(Sensor_J3_GPIO_Port, Sensor_J3_Pin) == 0){
 					ResetCount(&ENC_LINK3, 1);
-					sethomeJ3 = 1;
-					AngleLink3 = -135;
+					sethomeJ.sethomeJ3 = 1;
+					SpeedSetHomeJ.SpeedSetHomeJ3 = 0;
+					Angle.AngleLink3 = -135;
 				}
 			}
 			else {
-				SpeedSetHomeJ3 = -300;
-				Drive(&Motor_LINK3, &htim4, SpeedSetHomeJ3, TIM_CHANNEL_1, TIM_CHANNEL_2);
+				SpeedSetHomeJ.SpeedSetHomeJ3 = -300;
+				Drive(&Motor_LINK3, &htim4, SpeedSetHomeJ.SpeedSetHomeJ3, TIM_CHANNEL_1, TIM_CHANNEL_2);
 			}
 		}
-		if(sethomeJ4 == 0){
+		if(sethomeJ.sethomeJ4 == 0){
 			if(HAL_GPIO_ReadPin(Sensor_J4_GPIO_Port, Sensor_J4_Pin) == 0){
 				osDelay(1);
 				if(HAL_GPIO_ReadPin(Sensor_J4_GPIO_Port, Sensor_J4_Pin) == 0){
 					ResetCount(&ENC_LINK4, 1);
-					SpeedSetHomeJ4 = 0;
-					sethomeJ4 = 1;
-					AngleLink4 = 90;
+					SpeedSetHomeJ.SpeedSetHomeJ4 = 0;
+					sethomeJ.sethomeJ4 = 1;
+					Angle.AngleLink4 = 90;
 				}
 			}
 			else {
-				SpeedSetHomeJ4 = 300;
-				Drive(&Motor_LINK4, &htim9, SpeedSetHomeJ4, TIM_CHANNEL_1, TIM_CHANNEL_2);
+				SpeedSetHomeJ.SpeedSetHomeJ4 = 300;
+				Drive(&Motor_LINK4, &htim9, SpeedSetHomeJ.SpeedSetHomeJ4, TIM_CHANNEL_1, TIM_CHANNEL_2);
 			}
 		}
-		if(sethomeJ1 == 1 && sethomeJ2 == 1 && sethomeJ3 == 1 && sethomeJ4 == 1){
-			startProgram = 1;
+		if(sethomeJ.sethomeJ1 == 1 && sethomeJ.sethomeJ2 == 1 && sethomeJ.sethomeJ3 == 1 && sethomeJ.sethomeJ4 == 1){
+			FlagStart.startProgram = 1;
 		}
 	}
     osDelay(10);
@@ -1115,22 +1245,22 @@ void StartTaskPID(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  if(sethomeJ1 == 1)	PID_LINK1_Pos();
-	  if(sethomeJ2 == 1)	PID_LINK2_Pos();
-	  if(sethomeJ3 == 1)	PID_LINK3_Pos();
-	  if(sethomeJ4 == 1)	PID_LINK4_Pos();
+	  if(sethomeJ.sethomeJ1 == 1)	PID_LINK1_Pos();
+	  if(sethomeJ.sethomeJ2 == 1)	PID_LINK2_Pos();
+	  if(sethomeJ.sethomeJ3 == 1)	PID_LINK3_Pos();
+	  if(sethomeJ.sethomeJ4 == 1)	PID_LINK4_Pos();
 
-	  if(startFK == 1){
-		  AngleLink1 = inputTheta1;
-		  AngleLink2 = inputTheta2;
-		  AngleLink3 = inputTheta3;
-		  AngleLink4 = inputTheta4;
+	  if(FlagStart.startFK == 1){
+		  Angle.AngleLink1 = InputFK.inputTheta1;
+		  Angle.AngleLink2 = InputFK.inputTheta2;
+		  Angle.AngleLink3 = InputFK.inputTheta3;
+		  Angle.AngleLink4 = InputFK.inputTheta4;
 	  }
-	  if(startIK_BN1 == 1 || startIK_BN2 == 1){
-		  AngleLink1 = Theta1_IK;
-		  AngleLink2 = Theta2_IK;
-		  AngleLink3 = Theta3_IK;
-		  AngleLink4 = Theta4_IK;
+	  if(FlagStart.startIK_BN1 == 1 || FlagStart.startIK_BN2 == 1){
+		  Angle.AngleLink1 = IK.Theta1_IK;
+		  Angle.AngleLink2 = IK.Theta2_IK;
+		  Angle.AngleLink3 = IK.Theta3_IK;
+		  Angle.AngleLink4 = IK.Theta4_IK;
 	  }
 	  osDelay(10);
   }
