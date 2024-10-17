@@ -61,6 +61,7 @@ UART_HandleTypeDef huart2;
 osThreadId defaultTaskHandle;
 osThreadId TaskSetHomeHandle;
 osThreadId TaskCalPIDHandle;
+osThreadId TaskTrajectoryHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -79,6 +80,7 @@ static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void StartTaskSetHome(void const * argument);
 void StartTaskPID(void const * argument);
+void StartTaskTrajectory(void const * argument);
 
 /* USER CODE BEGIN PFP */
 #define L1 		91
@@ -91,7 +93,9 @@ void StartTaskPID(void const * argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 //----------------GLOBAL VARIABLE------------------//
+
 typedef struct{
+	uint8_t startSetHome;
 	uint8_t startProgram;
 	uint8_t startFK;
 	uint8_t startIK_BN1;
@@ -131,6 +135,34 @@ typedef struct{
 }Angle_;
 Angle_ Angle;
 //----------------GLOBAL VARIABLE------------------//
+
+//--------------TRAJECTORY PLANNING----------------//
+typedef struct{
+	float setpoint1;
+	float setpoint2;
+	float setpoint3;
+	float setpoint4;
+
+	float preSetpoint1;
+	float preSetpoint2;
+	float preSetpoint3;
+	float preSetpoint4;
+
+	float p0_1;
+	float p0_2;
+	float p0_3;
+	float p0_4;
+}Setpoint_;
+Setpoint_ Setpoint;
+
+float T1, T2, T3, T4;
+float Tf=3000;
+
+float p(float p0, float pf, float tf, float v0, float vf, float T)
+{
+    return p0+v0*T+(3*(pf-p0)/(tf*tf)-2*v0/tf-vf/tf)*(T*T)+(-2*(pf-p0)/(tf*tf*tf)+(vf+v0)/(tf*tf))*(T*T*T);
+}
+//--------------TRAJECTORY PLANNING----------------//
 
 //----------------LINK1------------------//
 EncoderRead ENC_LINK1;
@@ -216,7 +248,7 @@ PID_Param	PID_DC_POS_LINK3;
 void PID_LINK3_Init()
 {
 	PID_DC_SPEED_LINK3.kP = 50;
-	PID_DC_SPEED_LINK3.kI = 250;
+	PID_DC_SPEED_LINK3.kI = 300;
 	PID_DC_SPEED_LINK3.kD = 0;
 	PID_DC_SPEED_LINK3.alpha = 0;
 	PID_DC_SPEED_LINK3.deltaT = 0.01;
@@ -254,7 +286,7 @@ PID_Param	PID_DC_POS_LINK4;
 void PID_LINK4_Init()
 {
 	PID_DC_SPEED_LINK4.kP = 50;
-	PID_DC_SPEED_LINK4.kI = 300;
+	PID_DC_SPEED_LINK4.kI = 250;
 	PID_DC_SPEED_LINK4.kD = 0;
 	PID_DC_SPEED_LINK4.alpha = 0;
 	PID_DC_SPEED_LINK4.deltaT = 0.01;
@@ -322,19 +354,23 @@ float px_qd = 0, py_qd = 0, pz_qd = 0, theta_qd = 0, time = 0;
 
 int16_t t1, t2, t3, t4;
 
-void calculate_FK(ForwardKinematics_ *FK ,float theta1Value, float theta2Value, float theta3Value, float theta4Value) {
+void calculate_FK(ForwardKinematics_ *FK, Setpoint_ *Setpoint, float theta1Value, float theta2Value, float theta3Value, float theta4Value) {
 
 	FK->theta1_FK = theta1Value;
 	FK->theta1_FK_rad = (FK->theta1_FK * M_PI) / 180.0;
+	Setpoint->setpoint1 = theta1Value;
 
 	FK->theta2_FK = theta2Value;
 	FK->theta2_FK_rad = (FK->theta2_FK * M_PI) / 180.0;
+	Setpoint->setpoint2 = theta2Value;
 
 	FK->theta3_FK = theta3Value;
 	FK->theta3_FK_rad = (FK->theta3_FK * M_PI) / 180.0;
+	Setpoint->setpoint3 = theta3Value;
 
 	FK->theta4_FK = theta4Value;
 	FK->theta4_FK_rad = (FK->theta4_FK * M_PI) / 180.0;
+	Setpoint->setpoint4 = theta4Value;
 
 	FK->psi_FK = FK->theta2_FK + FK->theta3_FK + FK->theta4_FK;
 	FK->psi_FK_rad = FK->theta2_FK_rad + FK->theta3_FK_rad + FK->theta4_FK_rad;
@@ -391,7 +427,11 @@ typedef struct{
 }InputIK_;
 InputIK_ InputIK;
 
-void calculate_IK_BN1(InverseKinematics_ *IK,float Px_value, float Py_value, float Pz_value, float Theta_value){
+float round_nearest(float value) {
+    return (value >= 0) ? floor(value + 0.5) : ceil(value - 0.5);
+}
+
+void calculate_IK_BN1(InverseKinematics_ *IK, Setpoint_ *Setpoint,float Px_value, float Py_value, float Pz_value, float Theta_value){
 
     IK->Px_IK = Px_value;
     IK->Py_IK = Py_value;
@@ -408,6 +448,8 @@ void calculate_IK_BN1(InverseKinematics_ *IK,float Px_value, float Py_value, flo
     } else if (IK->Theta1_IK > 180) {
     	IK->Theta1_IK -= 360;
     }
+    IK->Theta1_IK = round_nearest(IK->Theta1_IK);
+    Setpoint->setpoint1 = IK->Theta1_IK;
 
     IK->E = IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L4 * cos(IK->t_rad);
     IK->F = IK->Pz_IK - d1 - L4 * sin(IK->t_rad);
@@ -428,6 +470,8 @@ void calculate_IK_BN1(InverseKinematics_ *IK,float Px_value, float Py_value, flo
     } else if (IK->Theta2_IK > 180) {
     	IK->Theta2_IK -= 360;
     }
+    IK->Theta2_IK = round_nearest(IK->Theta2_IK);
+    Setpoint->setpoint2 = IK->Theta2_IK;
 
     IK->c23 = (IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L2 * cos(IK->theta2_IK_rad) - L4 * cos(IK->t_rad)) / L3;
     IK->s23 = (IK->Pz_IK - d1 - L2 * sin(IK->theta2_IK_rad) - L4 * sin(IK->t_rad)) / L3;
@@ -439,13 +483,17 @@ void calculate_IK_BN1(InverseKinematics_ *IK,float Px_value, float Py_value, flo
     } else if (IK->Theta3_IK > 180) {
     	IK->Theta3_IK -= 360;
     }
+    IK->Theta3_IK = round_nearest(IK->Theta3_IK);
+    Setpoint->setpoint3 = IK->Theta3_IK;
 
     IK->theta4_IK_rad = IK->t_rad - IK->theta2_IK_rad - IK->theta3_IK_rad;
     IK->Theta4_IK = IK->theta4_IK_rad * (180 / M_PI);
+    IK->Theta4_IK = round_nearest(IK->Theta4_IK);
+    Setpoint->setpoint4 = IK->Theta4_IK;
 
 }
 
-void calculate_IK_BN2(InverseKinematics_ *IK,float px_value, float py_value, float pz_value, float Theta_value) {
+void calculate_IK_BN2(InverseKinematics_ *IK, Setpoint_ *Setpoint,float px_value, float py_value, float pz_value, float Theta_value) {
 
 	IK->Px_IK = px_value;
 	IK->Py_IK = py_value;
@@ -462,6 +510,8 @@ void calculate_IK_BN2(InverseKinematics_ *IK,float px_value, float py_value, flo
     } else if (IK->Theta1_IK > 180) {
     	IK->Theta1_IK -= 360;
     }
+    IK->Theta1_IK = round_nearest(IK->Theta1_IK);
+    Setpoint->setpoint1 = IK->Theta1_IK;
 
     IK->E = IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L4 * cos(IK->t_rad);
     IK->F = IK->Pz_IK - d1 - L4 * sin(IK->t_rad);
@@ -483,6 +533,8 @@ void calculate_IK_BN2(InverseKinematics_ *IK,float px_value, float py_value, flo
     } else if (IK->Theta2_IK > 180) {
     	IK->Theta2_IK -= 360;
     }
+    IK->Theta2_IK = round_nearest(IK->Theta2_IK);
+    Setpoint->setpoint2 = IK->Theta2_IK;
 
     IK->c23 = (IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L2 * cos(IK->theta2_IK_rad) - L4 * cos(IK->t_rad)) / L3;
     IK->s23 = (IK->Pz_IK - d1 - L2 * sin(IK->theta2_IK_rad) - L4 * sin(IK->t_rad)) / L3;
@@ -494,18 +546,16 @@ void calculate_IK_BN2(InverseKinematics_ *IK,float px_value, float py_value, flo
     } else if (IK->Theta3_IK > 180) {
     	IK->Theta3_IK -= 360;
     }
+    IK->Theta3_IK = round_nearest(IK->Theta3_IK);
+    Setpoint->setpoint3 = IK->Theta3_IK;
 
     IK->theta4_IK_rad = IK->t_rad - IK->theta2_IK_rad - IK->theta3_IK_rad;
     IK->Theta4_IK = IK->theta4_IK_rad * (180 / M_PI);
+    IK->Theta4_IK = round_nearest(IK->Theta4_IK);
+    Setpoint->setpoint4 = IK->Theta4_IK;
+
 }
 //--------------Cal Inverse Kinematics-----------//
-float T1, T2, T3, T4;
-float Tf=3000;
-
-float p(float p0, float pf, float tf, float v0, float vf, float T)
-{
-    return p0+v0*T+(3*(pf-p0)/(tf*tf)-2*v0/tf-vf/tf)*(T*T)+(-2*(pf-p0)/(tf*tf*tf)+(vf+v0)/(tf*tf))*(T*T*T);
-}
 
 /* USER CODE END 0 */
 
@@ -563,7 +613,7 @@ int main(void)
 
   EncoderSetting(&ENC_LINK1, &htim1, 6950, 0.01);
   EncoderSetting(&ENC_LINK2, &htim2, 3250, 0.01);
-  EncoderSetting(&ENC_LINK3, &htim3, 6880, 0.01);
+  EncoderSetting(&ENC_LINK3, &htim3, 7050, 0.01);
   EncoderSetting(&ENC_LINK4, &htim5, 3220, 0.01);
 
   PID_LINK1_Init();
@@ -600,6 +650,10 @@ int main(void)
   /* definition and creation of TaskCalPID */
   osThreadDef(TaskCalPID, StartTaskPID, osPriorityNormal, 0, 128);
   TaskCalPIDHandle = osThreadCreate(osThread(TaskCalPID), NULL);
+
+  /* definition and creation of TaskTrajectory */
+  osThreadDef(TaskTrajectory, StartTaskTrajectory, osPriorityBelowNormal, 0, 128);
+  TaskTrajectoryHandle = osThreadCreate(osThread(TaskTrajectory), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1124,13 +1178,16 @@ void StartDefaultTask(void const * argument)
   {
 	if(FlagStart.startProgram == 1){
 		if(FlagStart.startFK == 1){
-			calculate_FK(&FK, InputFK.inputTheta1, InputFK.inputTheta2, InputFK.inputTheta3, InputFK.inputTheta4);
+			calculate_FK(&FK, &Setpoint, InputFK.inputTheta1, InputFK.inputTheta2, InputFK.inputTheta3, InputFK.inputTheta4);
+//			FlagStart.startFK = 0;
 		}
 		if(FlagStart.startIK_BN1 == 1){
-			calculate_IK_BN1(&IK, InputIK.inputPx, InputIK.inputPy, InputIK.inputPz, InputIK.inputTheta);
+			calculate_IK_BN1(&IK, &Setpoint, InputIK.inputPx, InputIK.inputPy, InputIK.inputPz, InputIK.inputTheta);
+//			  FlagStart.startIK_BN1 = 0;
 		}
 		if(FlagStart.startIK_BN2 == 1){
-			calculate_IK_BN2(&IK, InputIK.inputPx, InputIK.inputPy, InputIK.inputPz, InputIK.inputTheta);
+			calculate_IK_BN2(&IK, &Setpoint, InputIK.inputPx, InputIK.inputPy, InputIK.inputPz, InputIK.inputTheta);
+//			  FlagStart.startIK_BN2 = 0;
 		}
 	}
     osDelay(10);
@@ -1155,7 +1212,14 @@ void StartTaskSetHome(void const * argument)
 	sensor.sensor2 = HAL_GPIO_ReadPin(Sensor_J2_GPIO_Port, Sensor_J2_Pin);
 	sensor.sensor3 = HAL_GPIO_ReadPin(Sensor_J3_GPIO_Port, Sensor_J3_Pin);
 	sensor.sensor4 = HAL_GPIO_ReadPin(Sensor_J4_GPIO_Port, Sensor_J4_Pin);
-
+	if(FlagStart.startSetHome == 1){
+		sethomeJ.sethomeJ1 = 0;
+		sethomeJ.sethomeJ2 = 0;
+		sethomeJ.sethomeJ3 = 0;
+		sethomeJ.sethomeJ4 = 0;
+		FlagStart.startProgram = 0;
+		FlagStart.startSetHome = 0;
+	}
 	if(FlagStart.startProgram == 0){
 		if(sethomeJ.sethomeJ1 == 0){
 			if(HAL_GPIO_ReadPin(Sensor_J1_GPIO_Port, Sensor_J1_Pin) == 1){
@@ -1165,6 +1229,7 @@ void StartTaskSetHome(void const * argument)
 					SpeedSetHomeJ.SpeedSetHomeJ1 = 0;
 					sethomeJ.sethomeJ1 = 1;
 					Angle.AngleLink1 = 0;
+					Setpoint.p0_1 = 0;
 				}
 			}
 			else {
@@ -1186,6 +1251,8 @@ void StartTaskSetHome(void const * argument)
 					SpeedSetHomeJ.SpeedSetHomeJ2 = 0;
 					sethomeJ.sethomeJ2 = 1;
 					Angle.AngleLink2 = 187;
+					Setpoint.p0_2 = 187;
+
 				}
 			}
 			else {
@@ -1201,6 +1268,7 @@ void StartTaskSetHome(void const * argument)
 					sethomeJ.sethomeJ3 = 1;
 					SpeedSetHomeJ.SpeedSetHomeJ3 = 0;
 					Angle.AngleLink3 = -135;
+					Setpoint.p0_3 = -135;
 				}
 			}
 			else {
@@ -1216,6 +1284,7 @@ void StartTaskSetHome(void const * argument)
 					SpeedSetHomeJ.SpeedSetHomeJ4 = 0;
 					sethomeJ.sethomeJ4 = 1;
 					Angle.AngleLink4 = 90;
+					Setpoint.p0_4 = 90;
 				}
 			}
 			else {
@@ -1250,21 +1319,92 @@ void StartTaskPID(void const * argument)
 	  if(sethomeJ.sethomeJ3 == 1)	PID_LINK3_Pos();
 	  if(sethomeJ.sethomeJ4 == 1)	PID_LINK4_Pos();
 
-	  if(FlagStart.startFK == 1){
-		  Angle.AngleLink1 = InputFK.inputTheta1;
-		  Angle.AngleLink2 = InputFK.inputTheta2;
-		  Angle.AngleLink3 = InputFK.inputTheta3;
-		  Angle.AngleLink4 = InputFK.inputTheta4;
-	  }
-	  if(FlagStart.startIK_BN1 == 1 || FlagStart.startIK_BN2 == 1){
-		  Angle.AngleLink1 = IK.Theta1_IK;
-		  Angle.AngleLink2 = IK.Theta2_IK;
-		  Angle.AngleLink3 = IK.Theta3_IK;
-		  Angle.AngleLink4 = IK.Theta4_IK;
-	  }
 	  osDelay(10);
   }
   /* USER CODE END StartTaskPID */
+}
+
+/* USER CODE BEGIN Header_StartTaskTrajectory */
+/**
+* @brief Function implementing the TaskTrajectory thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTaskTrajectory */
+void StartTaskTrajectory(void const * argument)
+{
+  /* USER CODE BEGIN StartTaskTrajectory */
+  /* Infinite loop */
+  static uint8_t mode = 0;
+  for(;;)
+  {
+	if(FlagStart.startFK == 1 || FlagStart.startIK_BN1 == 1 || FlagStart.startIK_BN2 == 1){
+		switch(mode){
+			case 0:
+				if(T1 < Tf){
+					T1 += 5;
+					Angle.AngleLink1 = p(Setpoint.p0_1, Setpoint.setpoint1, Tf, 0, 0, T1);
+				}
+				mode = 1;
+				break;
+			case 1:
+				if(T2 < Tf){
+					T2 += 5;
+					Angle.AngleLink2 = p(Setpoint.p0_2, Setpoint.setpoint2, Tf, 0, 0, T2);
+				}
+				mode = 2;
+				break;
+
+			case 2:
+				if(T3 < Tf){
+					T3 += 5;
+					Angle.AngleLink3 = p(Setpoint.p0_3, Setpoint.setpoint1, Tf, 0, 0, T3);
+				}
+				mode = 3;
+				break;
+			case 3:
+				if(T4 < Tf){
+					T4 += 5;
+					Angle.AngleLink4 = p(Setpoint.p0_4, Setpoint.setpoint1, Tf, 0, 0, T4);
+				}
+				mode = 4;
+				break;
+			case 4:
+				  if (Setpoint.setpoint1 != Setpoint.preSetpoint1)
+				  {
+					T1 = 0;
+					Setpoint.p0_1 = Angle.AngleLink1;
+					Setpoint.preSetpoint1 = Setpoint.setpoint1;
+				  }
+				  if (Setpoint.setpoint2 != Setpoint.preSetpoint2)
+				  {
+					T2 = 0;
+					Setpoint.p0_2 = Angle.AngleLink2;
+					Setpoint.preSetpoint2 = Setpoint.setpoint2;
+				  }
+				  if (Setpoint.setpoint3 != Setpoint.preSetpoint3)
+				  {
+					T3 = 0;
+					Setpoint.p0_3 = Angle.AngleLink3;
+					Setpoint.preSetpoint3 = Setpoint.setpoint3;
+				  }
+				  if (Setpoint.setpoint4 != Setpoint.preSetpoint4)
+				  {
+					T4 = 0;
+					Setpoint.p0_4 = Angle.AngleLink4;
+					Setpoint.preSetpoint4 = Setpoint.setpoint4;
+				  }
+				  mode = 0;
+				  break;
+			default:
+			  break;
+		}
+
+
+	}
+    osDelay(1);
+  }
+  /* USER CODE END StartTaskTrajectory */
 }
 
 /**
