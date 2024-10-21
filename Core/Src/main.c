@@ -30,6 +30,7 @@
 #include "stdio.h"
 #include <stdbool.h>
 #include "cJSON.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,9 +57,10 @@ TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
 
-UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart1;
+DMA_HandleTypeDef hdma_usart1_rx;
 
-osThreadId defaultTaskHandle;
+osThreadId TaskLogicHandle;
 osThreadId TaskSetHomeHandle;
 osThreadId TaskCalPIDHandle;
 osThreadId TaskTrajectoryHandle;
@@ -69,6 +71,7 @@ osThreadId TaskTrajectoryHandle;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM2_Init(void);
@@ -76,8 +79,8 @@ static void MX_TIM3_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM9_Init(void);
-static void MX_USART2_UART_Init(void);
-void StartDefaultTask(void const * argument);
+static void MX_USART1_UART_Init(void);
+void StartTaskLogic(void const * argument);
 void StartTaskSetHome(void const * argument);
 void StartTaskPID(void const * argument);
 void StartTaskTrajectory(void const * argument);
@@ -92,14 +95,16 @@ void StartTaskTrajectory(void const * argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//----------------GLOBAL VARIABLE------------------//
 
+//----------------GLOBAL VARIABLE------------------//
 typedef struct{
 	uint8_t startSetHome;
 	uint8_t startProgram;
 	uint8_t startFK;
 	uint8_t startIK_BN1;
 	uint8_t startIK_BN2;
+	uint8_t startUartFK;
+	uint8_t startUartIK;
 }FlagStart_;
 FlagStart_ FlagStart;
 
@@ -490,7 +495,6 @@ void calculate_IK_BN1(InverseKinematics_ *IK, Setpoint_ *Setpoint,float Px_value
     IK->Theta4_IK = IK->theta4_IK_rad * (180 / M_PI);
     IK->Theta4_IK = round_nearest(IK->Theta4_IK);
     Setpoint->setpoint4 = IK->Theta4_IK;
-
 }
 
 void calculate_IK_BN2(InverseKinematics_ *IK, Setpoint_ *Setpoint,float px_value, float py_value, float pz_value, float Theta_value) {
@@ -553,10 +557,65 @@ void calculate_IK_BN2(InverseKinematics_ *IK, Setpoint_ *Setpoint,float px_value
     IK->Theta4_IK = IK->theta4_IK_rad * (180 / M_PI);
     IK->Theta4_IK = round_nearest(IK->Theta4_IK);
     Setpoint->setpoint4 = IK->Theta4_IK;
-
 }
 //--------------Cal Inverse Kinematics-----------//
+#define MAX_MESG 100
+char uartLogBuffer[MAX_MESG];
+uint8_t flag_uart_rx = 0;
+uint16_t uartLogRxSize;
 
+void UartIdle_Init()
+{
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, (uint8_t*)uartLogBuffer, MAX_MESG);
+  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
+}
+
+
+void UART_Handle(char* data, Setpoint_* Setpoint)
+{
+  if (flag_uart_rx == 1 && strstr(data, "\n"))  // Kiểm tra khi có ngắt và có ký tự '\n'
+  {
+    if (strstr(data, "theta1"))
+    {
+      sscanf(data, "theta1:%f,theta2:%f,theta3:%f,theta4:%f\n", &Setpoint->setpoint1, &Setpoint->setpoint2, &Setpoint->setpoint3, &Setpoint->setpoint4);
+    }
+    else if (strstr(data, "qd"))
+    {
+      // Xử lý cho chuỗi "qd"
+    }
+    else if (strstr(data, "home"))
+    {
+      // Xử lý cho chuỗi "home"
+    }
+    else if (strstr(data, "Reset"))
+    {
+      HAL_NVIC_SystemReset();  // Reset hệ thống
+    }
+    else if (strstr(data, "hut"))
+    {
+      // Xử lý cho chuỗi "hut"
+    }
+    else if (strstr(data, "nha"))
+    {
+      // Xử lý cho chuỗi "nha"
+    }
+
+    flag_uart_rx = 0;   // Tắt c�? sau khi xử lý
+    memset(data, 0, uartLogRxSize);  // Xóa buffer dựa trên kích thước dữ liệu nhận được
+  }
+}
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
+{
+  if (huart->Instance == USART1)
+  {
+    uartLogRxSize = Size;   // Lưu kích thước nhận được
+    flag_uart_rx = 1;       // Bật c�? hiệu nhận dữ liệu thành công
+	UART_Handle(uartLogBuffer, &Setpoint);
+
+    // Sau khi xử lý, kích hoạt lại nhận DMA
+    HAL_UARTEx_ReceiveToIdle_DMA(huart, (uint8_t*)uartLogBuffer, MAX_MESG);
+  }
+}
 /* USER CODE END 0 */
 
 /**
@@ -587,6 +646,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_TIM1_Init();
   MX_TIM4_Init();
   MX_TIM2_Init();
@@ -594,7 +654,7 @@ int main(void)
   MX_TIM5_Init();
   MX_TIM8_Init();
   MX_TIM9_Init();
-  MX_USART2_UART_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
@@ -610,7 +670,6 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
 
-
   EncoderSetting(&ENC_LINK1, &htim1, 6950, 0.01);
   EncoderSetting(&ENC_LINK2, &htim2, 3250, 0.01);
   EncoderSetting(&ENC_LINK3, &htim3, 7050, 0.01);
@@ -620,6 +679,9 @@ int main(void)
   PID_LINK2_Init();
   PID_LINK3_Init();
   PID_LINK4_Init();
+
+  UartIdle_Init();
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -639,9 +701,9 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+  /* definition and creation of TaskLogic */
+  osThreadDef(TaskLogic, StartTaskLogic, osPriorityNormal, 0, 128);
+  TaskLogicHandle = osThreadCreate(osThread(TaskLogic), NULL);
 
   /* definition and creation of TaskSetHome */
   osThreadDef(TaskSetHome, StartTaskSetHome, osPriorityNormal, 0, 128);
@@ -1094,35 +1156,51 @@ static void MX_TIM9_Init(void)
 }
 
 /**
-  * @brief USART2 Initialization Function
+  * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USART2_UART_Init(void)
+static void MX_USART1_UART_Init(void)
 {
 
-  /* USER CODE BEGIN USART2_Init 0 */
+  /* USER CODE BEGIN USART1_Init 0 */
 
-  /* USER CODE END USART2_Init 0 */
+  /* USER CODE END USART1_Init 0 */
 
-  /* USER CODE BEGIN USART2_Init 1 */
+  /* USER CODE BEGIN USART1_Init 1 */
 
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART2_Init 2 */
+  /* USER CODE BEGIN USART1_Init 2 */
 
-  /* USER CODE END USART2_Init 2 */
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 
 }
 
@@ -1163,33 +1241,19 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_StartTaskLogic */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function implementing the TaskLogic thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const * argument)
+/* USER CODE END Header_StartTaskLogic */
+void StartTaskLogic(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
   {
-	if(FlagStart.startProgram == 1){
-		if(FlagStart.startFK == 1){
-			calculate_FK(&FK, &Setpoint, InputFK.inputTheta1, InputFK.inputTheta2, InputFK.inputTheta3, InputFK.inputTheta4);
-//			FlagStart.startFK = 0;
-		}
-		if(FlagStart.startIK_BN1 == 1){
-			calculate_IK_BN1(&IK, &Setpoint, InputIK.inputPx, InputIK.inputPy, InputIK.inputPz, InputIK.inputTheta);
-//			  FlagStart.startIK_BN1 = 0;
-		}
-		if(FlagStart.startIK_BN2 == 1){
-			calculate_IK_BN2(&IK, &Setpoint, InputIK.inputPx, InputIK.inputPy, InputIK.inputPz, InputIK.inputTheta);
-//			  FlagStart.startIK_BN2 = 0;
-		}
-	}
     osDelay(10);
   }
   /* USER CODE END 5 */
@@ -1338,7 +1402,7 @@ void StartTaskTrajectory(void const * argument)
   static uint8_t mode = 0;
   for(;;)
   {
-	if(FlagStart.startFK == 1 || FlagStart.startIK_BN1 == 1 || FlagStart.startIK_BN2 == 1){
+	if(FlagStart.startProgram == 1){
 		switch(mode){
 			case 0:
 				if(T1 < Tf){
@@ -1358,14 +1422,14 @@ void StartTaskTrajectory(void const * argument)
 			case 2:
 				if(T3 < Tf){
 					T3 += 5;
-					Angle.AngleLink3 = p(Setpoint.p0_3, Setpoint.setpoint1, Tf, 0, 0, T3);
+					Angle.AngleLink3 = p(Setpoint.p0_3, Setpoint.setpoint3, Tf, 0, 0, T3);
 				}
 				mode = 3;
 				break;
 			case 3:
 				if(T4 < Tf){
 					T4 += 5;
-					Angle.AngleLink4 = p(Setpoint.p0_4, Setpoint.setpoint1, Tf, 0, 0, T4);
+					Angle.AngleLink4 = p(Setpoint.p0_4, Setpoint.setpoint4, Tf, 0, 0, T4);
 				}
 				mode = 4;
 				break;
@@ -1395,16 +1459,36 @@ void StartTaskTrajectory(void const * argument)
 					Setpoint.preSetpoint4 = Setpoint.setpoint4;
 				  }
 				  mode = 0;
+
 				  break;
 			default:
 			  break;
 		}
-
-
 	}
     osDelay(1);
   }
   /* USER CODE END StartTaskTrajectory */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM14 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM14) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
 }
 
 /**
