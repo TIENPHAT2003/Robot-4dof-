@@ -157,6 +157,11 @@ typedef struct{
 	float p0_2;
 	float p0_3;
 	float p0_4;
+
+	float theta1_Nha;
+	float theta2_Nha;
+	float theta3_Nha;
+	float theta4_Nha;
 }Setpoint_;
 Setpoint_ Setpoint;
 
@@ -559,7 +564,16 @@ void calculate_IK_BN2(InverseKinematics_ *IK, Setpoint_ *Setpoint,float px_value
     Setpoint->setpoint4 = IK->Theta4_IK;
 }
 //--------------Cal Inverse Kinematics-----------//
-#define MAX_MESG 100
+typedef struct {
+	float theta1;
+	float theta2;
+	float theta3;
+	float theta4;
+}_SetPoint_Nha;
+
+_SetPoint_Nha SetPoint_Nha;
+
+#define MAX_MESG 256
 char uartLogBuffer[MAX_MESG];
 uint8_t flag_uart_rx = 0;
 uint16_t uartLogRxSize;
@@ -573,43 +587,62 @@ void UartIdle_Init()
 
 void UART_Handle(char* data, Setpoint_* Setpoint)
 {
-  if (flag_uart_rx == 1 && strstr(data, "\n"))  // Kiểm tra khi có ngắt và có ký tự '\n'
+  if (flag_uart_rx == 1 && strstr(data, "\n"))  // Only process data when flag is set and newline is detected
   {
-    if (strstr(data, "theta1"))
+    if (strstr(data, "theta1"))  // Handle "theta1" data
     {
-      sscanf(data, "theta1:%f,theta2:%f,theta3:%f,theta4:%f\n", &Setpoint->setpoint1, &Setpoint->setpoint2, &Setpoint->setpoint3, &Setpoint->setpoint4);
+      if (sscanf(data, "theta1:%f,theta2:%f,theta3:%f,theta4:%f\n",
+                 &Setpoint->setpoint1, &Setpoint->setpoint2,
+                 &Setpoint->setpoint3, &Setpoint->setpoint4) == 4)
+      {
+          FlagStart.startUartFK = 1;
+      }
     }
-    else if (strstr(data, "qd"))
+    else if (strstr(data, "NhaT1"))  // Handle "theta1Nha" data
     {
-      // Xử lý cho chuỗi "qd"
+      if (sscanf(data, "NhaT1:%f,NhaT2:%f,NhaT3:%f,NhaT4:%f\n",
+    		  &Setpoint->theta1_Nha, &Setpoint->theta2_Nha,
+		      &Setpoint->theta3_Nha, &Setpoint->theta4_Nha) == 4)
+      {
+        FlagStart.startUartIK = 1;
+      }
     }
-    else if (strstr(data, "home"))
+    else if (strstr(data, "home"))  // Handle "home" command
     {
-      // Xử lý cho chuỗi "home"
+      // Add logic to handle "home" command
     }
-    else if (strstr(data, "Reset"))
+    else if (strstr(data, "Reset"))  // Handle system reset
     {
-      HAL_NVIC_SystemReset();  // Reset hệ thống
+      HAL_NVIC_SystemReset();  // Reset system
     }
-    else if (strstr(data, "hut"))
+    else if (strstr(data, "hut"))  // Handle "hut" command
     {
-      // Xử lý cho chuỗi "hut"
+      // Add logic to handle "hut" command
     }
-    else if (strstr(data, "nha"))
+    else if (strstr(data, "nha"))  // Handle "nha" command
     {
-      // Xử lý cho chuỗi "nha"
+      // Add logic to handle "nha" command
+    }
+    else if (strstr(data, "start"))  // Start program
+    {
+      FlagStart.startProgram = 1;
+    }
+    else if (strstr(data, "disconnected"))  // Handle disconnection
+    {
+      FlagStart.startProgram = 0;
     }
 
-    flag_uart_rx = 0;   // Tắt c�? sau khi xử lý
-    memset(data, 0, uartLogRxSize);  // Xóa buffer dựa trên kích thước dữ liệu nhận được
+    flag_uart_rx = 0;   // Clear the UART RX flag after processing
+    memset(data, 0, uartLogRxSize);  // Clear the buffer
   }
 }
+
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 {
   if (huart->Instance == USART1)
   {
-    uartLogRxSize = Size;   // Lưu kích thước nhận được
-    flag_uart_rx = 1;       // Bật c�? hiệu nhận dữ liệu thành công
+    uartLogRxSize = Size;
+    flag_uart_rx = 1;
 	UART_Handle(uartLogBuffer, &Setpoint);
 
     // Sau khi xử lý, kích hoạt lại nhận DMA
@@ -1254,6 +1287,7 @@ void StartTaskLogic(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+
     osDelay(10);
   }
   /* USER CODE END 5 */
@@ -1356,9 +1390,9 @@ void StartTaskSetHome(void const * argument)
 				Drive(&Motor_LINK4, &htim9, SpeedSetHomeJ.SpeedSetHomeJ4, TIM_CHANNEL_1, TIM_CHANNEL_2);
 			}
 		}
-		if(sethomeJ.sethomeJ1 == 1 && sethomeJ.sethomeJ2 == 1 && sethomeJ.sethomeJ3 == 1 && sethomeJ.sethomeJ4 == 1){
-			FlagStart.startProgram = 1;
-		}
+//		if(sethomeJ.sethomeJ1 == 1 && sethomeJ.sethomeJ2 == 1 && sethomeJ.sethomeJ3 == 1 && sethomeJ.sethomeJ4 == 1){
+//			FlagStart.startProgram = 1;
+//		}
 	}
     osDelay(10);
   }
