@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Control Robot 4 Dof</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="login-container" id="PageLogin" style="display:block;">
+    <div class="logo">
+      <img src="img/logo.jpg" alt="UTE Logo">
+    </div>
+    <h1>Login</h1>
+    <div class="form-group">
+      <input type="text" id="ssid" class="form-control" placeholder="User" />
+    </div>
+    <div class="form-group">
+      <input type="password" id="password" class="form-control" placeholder="Password" />
+    </div>
+    <button class="btn btn-primary btn-block" onclick="checkPassword()">Login</button>
+    <div class="text-center mt-3">
+      <a href="#">Forgot password?</a>
+    </div>
+    <div class="text-center mt-3">
+      <a href="#">Create a new account</a>
+    </div>
+  </div>
+    <!-- Modal Thông báo Mật khẩu Đúng -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body text-center">
+            <p id="successModaltext">Login Successful!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+      <!-- Modal Thông báo Mật khẩu Sai -->
+  <div class="modal fade" id="wrongPasswordModal" tabindex="-1" aria-labelledby="wrongPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body text-center">
+          <p>Login Fail. Please try again!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="wrongInputModal" tabindex="-1" aria-labelledby="wrongInputModal" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body text-center">
+          <p>Exceeded Angle Limit. Please try again!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="PageIntroduction" class="PageIntro" style="display:none;">
+    <header>
+      <img src="img/logo_hcmute_feee.png" alt="HCMUTE Logo">
+    </header>
+    <div class="content">
+      <Center>
+        <h3><b>THIẾT KẾ MÔ HÌNH VÀ ĐIỀU KHIỂN CÁNH TAY ROBOT 4 BẬC TỰ DO</b></h3>
+        <h4><b>Môn: Thực tập kỹ thuật Robot</b></h4>
+      </Center>
+      <div class="student-info">
+        <div>
+          <h4><b>Giáo viên hướng dẫn:</b></h4>
+          <p>TS. Nguyễn Văn Thái</p><br/><br/>
+          <img src="img/d1.jpg" alt="Giảng viên hướng dẫn">
+        </div>
+        <div>
+          <h4><b>Sinh viên thực hiện:</b></h4>
+          <p>Vũ Tiến Phát - 21151309</p>
+          <p>Nguyễn Văn Pháp - 21151303</p>
+          <p>Nguyễn Thanh Sang - 21151309</p>
+          <img src="img/robot.png" alt="Giảng viên hướng dẫn">
+        </div>
+      </div>
+      <a class="start-button" id="buttonstart"><b>START</b></a>
+    </div>
+  </div>
+  <div id="PageController" class="PageController" style="display: none;">
+    
+    <header>
+      <img src="img/logo_hcmute_feee.png" alt="HCMUTE Logo">
+    </header>
+    <div class="sidebar" id="sidebar">
+      <button class="toggle-btn">☰</button>
+      <a id="buttonKinematics">Kinematics</a>
+      <a id="buttonAuto">Select Point</a>
+      <a id="buttonControl">Control</a>
+      <a id="buttonChart">Show Chart</a>
+      <a id="buttonSetting">Setting</a>
+    </div>
+    <div class="container" id="Kinematics">
+      <div class="kinematic-container">
+          <div class="forward-kinematic">
+              <Center><h2><b>FORWARD KINEMATICS</b></h2></Center>
+              <div class="joint-angles">
+                <div class="joint-angle-item">
+                  <label for="theta1">Theta 1:</label>
+                  <input type="text" id="theta1FK" value="0" oninput="updateJointAngleFromInput('theta1FK')">
+                  <input type="range" id="theta1FK-slider" min="-90" max="90" value="0" class="slider" oninput="updateJointAngleFromSlider('theta1FK')">
+                  <span id="theta1FK-value">0</span>
+              </div>
+              <div class="joint-angle-item">
+                  <label for="theta2">Theta 2:</label>
+                  <input type="text" id="theta2FK" value="0" oninput="updateJointAngleFromInput('theta2FK')">
+                  <input type="range" id="theta2FK-slider" min="-90" max="90" value="0" class="slider" oninput="updateJointAngleFromSlider('theta2FK')">
+                  <span id="theta2FK-value">0</span>
+              </div>
+              <div class="joint-angle-item">
+                  <label for="theta3">Theta 3:</label>
+                  <input type="text" id="theta3FK" value="0" oninput="updateJointAngleFromInput('theta3FK')">
+                  <input type="range" id="theta3FK-slider" min="-90" max="90" value="0" class="slider" oninput="updateJointAngleFromSlider('theta3FK')">
+                  <span id="theta3FK-value">0</span>
+              </div>
+              <div class="joint-angle-item">
+                  <label for="theta4">Theta 4:</label>
+                  <input type="text" id="theta4FK" value="0" oninput="updateJointAngleFromInput('theta4FK')">
+                  <input type="range" id="theta4FK-slider" min="-90" max="90" value="0" class="slider" oninput="updateJointAngleFromSlider('theta4FK')">
+                  <span id="theta4FK-value">0</span>
+              </div>
+              </div>
+              <div class="position">
+                  <label for="pxFK">Px:</label>
+                  <label for="pyFK">Py:</label>
+                  <label for="pzFK">Pz:</label>
+                  <label for="thetaFK">Theta:</label>
+              </div>
+              <div class="position">
+                  <input type="number" id="pxFK" value="0" readonly>
+                  <input type="number" id="pyFK" value="0" readonly>
+                  <input type="number" id="pzFK" value="0" readonly>
+                  <input type="number" id="thetaFK" value="0" readonly>
+              </div>
+              <button id="calculate-forward" onclick="calculateForwardKinematics()">Calculate Forward Kinematics</button>
+          </div>
+          <div class="forward-kinematic">
+            <Center><h2><b>INVERSE KINEMATICS</b></h2></Center>
+            <div class="joint-angles">
+                <div class="joint-angle-item">
+                    <label for="pxIK">Px:</label>
+                    <input type="text" id="pxIK" value="0" oninput="updateJointPositionFromInput('pxIK')">
+                    <input type="range" id="pxIK-slider" min="-400" max="400" value="0" class="slider" oninput="updateJointPositionFromSlider('pxIK')">
+                    <span id="pxIK-value">0</span>
+                </div>
+                <div class="joint-angle-item">
+                    <label for="pyIK">Py:</label>
+                    <input type="text" id="pyIK" value="0" oninput="updateJointPositionFromInput('pyIK')">
+                    <input type="range" id="pyIK-slider" min="-400" max="400" value="0" class="slider" oninput="updateJointPositionFromSlider('pyIK')">
+                    <span id="pyIK-value">0</span>
+                </div>
+                <div class="joint-angle-item">
+                    <label for="pzIK">Pz:</label>
+                    <input type="text" id="pzIK" value="0" oninput="updateJointPositionFromInput('pzIK')">
+                    <input type="range" id="pzIK-slider" min="-400" max="400" value="0" class="slider" oninput="updateJointPositionFromSlider('pzIK')">
+                    <span id="pzIK-value">0</span>
+                </div>
+                <div class="joint-angle-item">
+                  <label for="thetaIK">Theta:</label>
+                  <input type="text" id="thetaIK" value="0" oninput="updateJointPositionFromInput('thetaIK')">
+                  <input type="range" id="thetaIK-slider" min="-90" max="90" value="0" class="slider" oninput="updateJointPositionFromSlider('thetaIK')">
+                  <span id="thetaIK-value">0</span>
+              </div>
+            </div>
+            <div class="position">
+                <label for="theta1">Theta 1:</label>
+                <label for="theta2">Theta 2:</label>
+                <label for="theta3">Theta 3:</label>
+                <label for="theta4">Theta 4:</label>
+            </div>
+            <div class="position">
+              <input type="number" id="theta1IK" value="0" readonly>
+              <input type="number" id="theta2IK" value="0" readonly>
+              <input type="number" id="theta3IK" value="0" readonly>
+              <input type="number" id="theta4IK" value="0" readonly>
+            </div>
+            <button id="calculate-forward" onclick="calculateInverseKinematics()">Calculate Inverse Kinematics</button>
+          </div> 
+        </div>
+        <div class="forward-kinematic">
+          <Center><h2><b>Current Position</b></h2></Center>
+          <h4><b>Angle:</b></h4>
+          <div class="position">
+            <label for="theta1">Theta 1:</label>
+            <input type="number" id="theta1" value="0" readonly>
+            <label for="theta2">Theta 2:</label>
+            <input type="number" id="theta2" value="0" readonly>
+            <label for="theta3">Theta 3:</label>
+            <input type="number" id="theta3" value="0" readonly>
+            <label for="theta4">Theta 4:</label>
+            <input type="number" id="theta4" value="0" readonly>
+          </div>
+          <h4><b>Position:</b></h4>
+          <div class="position">
+            <label for="px">Px:</label>
+            <input type="number" id="px" value="0" readonly>
+            <label for="py">Py:</label>
+            <input type="number" id="py" value="0" readonly>
+            <label for="pz">Pz:</label>
+            <input type="number" id="pz" value="0" readonly>
+            <label for="theta">Theta:</label>
+            <input type="number" id="theta" value="0" readonly>
+          </div>
+        </div>
+    </div>
+    <div id="Auto" style="display: none;">
+      <<div id="grid-container-wrapper">
+        <div id="grid-container"></div><br/>
+        <div class="button-container" >
+          <button id="buttonSetPoint">Set Point</button><br/>
+          <button id="buttonSelectPoint">Select Point</button>
+          <button id="buttonStartAuto">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+<script src="./lib.js"></script>
+<script src="./main.js"></script>
+<script src="./Login.js"></script>
+<script src="./ForwardKinematic.js"></script>
+<script src="./InverseKinematic.js"></script>
+<script src="./Table.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</html>

@@ -86,11 +86,7 @@ void StartTaskPID(void const * argument);
 void StartTaskTrajectory(void const * argument);
 
 /* USER CODE BEGIN PFP */
-#define L1 		91
-#define L2		122
-#define L3		77
-#define L4		78
-#define d1		(62 + 176)
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -100,11 +96,10 @@ void StartTaskTrajectory(void const * argument);
 typedef struct{
 	uint8_t startSetHome;
 	uint8_t startProgram;
-	uint8_t startFK;
-	uint8_t startIK_BN1;
-	uint8_t startIK_BN2;
-	uint8_t startUartFK;
-	uint8_t startUartIK;
+	uint8_t starKinematics;
+	uint8_t SetPoint_Nha;
+	uint8_t SetPoint_Hut;
+	uint8_t Fail;
 }FlagStart_;
 FlagStart_ FlagStart;
 
@@ -142,6 +137,14 @@ Angle_ Angle;
 //----------------GLOBAL VARIABLE------------------//
 
 //--------------TRAJECTORY PLANNING----------------//
+#define MAX_POINTS 50
+typedef struct {
+    float theta1;
+    float theta2;
+    float theta3;
+    float theta4;
+} Point;
+
 typedef struct{
 	float setpoint1;
 	float setpoint2;
@@ -162,6 +165,12 @@ typedef struct{
 	float theta2_Nha;
 	float theta3_Nha;
 	float theta4_Nha;
+
+	float theta1_Hut;
+	float theta2_Hut;
+	float theta3_Hut;
+	float theta4_Hut;
+	Point points[MAX_POINTS];
 }Setpoint_;
 Setpoint_ Setpoint;
 
@@ -173,7 +182,122 @@ float p(float p0, float pf, float tf, float v0, float vf, float T)
     return p0+v0*T+(3*(pf-p0)/(tf*tf)-2*v0/tf-vf/tf)*(T*T)+(-2*(pf-p0)/(tf*tf*tf)+(vf+v0)/(tf*tf))*(T*T*T);
 }
 //--------------TRAJECTORY PLANNING----------------//
+#define MAX_MESG 2048
+char uartLogBuffer[MAX_MESG];
+uint8_t flag_uart_rx = 0;
+uint16_t uartLogRxSize;
 
+void UartIdle_Init()
+{
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, (uint8_t*)uartLogBuffer, MAX_MESG);
+  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
+}
+
+void UART_Handle(char* data, Setpoint_* Setpoint)
+{
+    static char uartDataBuffer[1024] = "";
+    static size_t dataBufferIndex = 0;
+
+    if (flag_uart_rx == 1 && strstr(data, "\n"))
+    {
+        // Check for specific commands
+        if (strstr(data, "theta1"))
+        {
+            if (sscanf(data, "theta1:%f,theta2:%f,theta3:%f,theta4:%f\n",
+                       &Setpoint->setpoint1, &Setpoint->setpoint2,
+                       &Setpoint->setpoint3, &Setpoint->setpoint4) == 4)
+            {
+                FlagStart.starKinematics = 1;
+            }
+        }
+        else if (strstr(data, "NhaT1"))
+        {
+            if (sscanf(data, "NhaT1:%f,NhaT2:%f,NhaT3:%f,NhaT4:%f\n",
+                       &Setpoint->theta1_Nha, &Setpoint->theta2_Nha,
+                       &Setpoint->theta3_Nha, &Setpoint->theta4_Nha) == 4)
+            {
+                FlagStart.SetPoint_Nha = 1;
+            }
+        }
+        else if (strstr(data, "Point"))
+        {
+        	if (dataBufferIndex + strlen(data) < sizeof(uartDataBuffer) - 1) {
+				strncat(uartDataBuffer, data, sizeof(uartDataBuffer) - dataBufferIndex - 1);
+				dataBufferIndex += strlen(data);
+
+				if (strchr(uartDataBuffer, '\n') != NULL) {
+					char* savePtr;
+					char* token = strtok_r(uartDataBuffer, ";", &savePtr);
+
+					while (token != NULL) {
+						int pointId;
+						float theta1, theta2, theta3, theta4;
+
+
+						if (sscanf(token, "Point:%d, HutT1:%f, HutT2:%f, HutT3:%f, HutT4:%f",
+								   &pointId, &theta1, &theta2, &theta3, &theta4) == 5) {
+							Setpoint->points[pointId].theta1 = theta1;
+							Setpoint->points[pointId].theta2 = theta2;
+							Setpoint->points[pointId].theta3 = theta3;
+							Setpoint->points[pointId].theta4 = theta4;
+							FlagStart.SetPoint_Hut = 1;
+						}
+						else{
+							FlagStart.Fail = 1;
+						}
+						token = strtok_r(NULL, ";", &savePtr);
+					}
+
+					memset(uartDataBuffer, 0, sizeof(uartDataBuffer));
+					dataBufferIndex = 0;
+				}
+			}
+        }
+        else if (strstr(data, "home"))
+        {
+            // Handle "home" command here
+        }
+        else if (strstr(data, "Reset"))
+        {
+            HAL_NVIC_SystemReset();
+        }
+        else if (strstr(data, "hut"))
+        {
+            // Handle "hut" command here
+        }
+        else if (strstr(data, "nha"))
+        {
+            // Handle "nha" command here
+        }
+        else if (strstr(data, "start"))
+        {
+            FlagStart.startProgram = 1;
+        }
+        else if (strstr(data, "disconnected"))
+        {
+            FlagStart.startProgram = 0;
+            FlagStart.SetPoint_Hut = 0;
+            FlagStart.SetPoint_Nha = 0;
+            FlagStart.starKinematics = 0;
+        }
+        flag_uart_rx = 0;
+        memset(data, 0, uartLogRxSize);
+    }
+}
+
+
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
+{
+  if (huart->Instance == USART1)
+  {
+    uartLogRxSize = Size;
+    flag_uart_rx = 1;
+	UART_Handle(uartLogBuffer, &Setpoint);
+
+    HAL_UARTEx_ReceiveToIdle_DMA(huart, (uint8_t*)uartLogBuffer, MAX_MESG);
+  }
+}
 //----------------LINK1------------------//
 EncoderRead ENC_LINK1;
 MotorDrive 	Motor_LINK1;
@@ -326,329 +450,8 @@ void PID_LINK4_Pos(){
 }
 //----------------LINK 4------------------//
 
-//--------------Cal Forward Kinematics-----------//
-typedef struct{
-	float inputTheta1;
-	float inputTheta2;
-	float inputTheta3;
-	float inputTheta4;
-}InputFK_;
-InputFK_ InputFK;
-
-typedef struct{
-	float theta1_FK;
-	float theta2_FK;
-	float theta3_FK;
-	float theta4_FK;
-	float theta_Fk;
-	float psi_FK;
-
-	float theta1_FK_rad;
-	float theta2_FK_rad;
-	float theta3_FK_rad;
-	float theta4_FK_rad;
-	float theta_FK_rad;
-	float psi_FK_rad;
-
-	float Px_FK;
-	float Py_FK;
-	float Pz_FK;
-
-}ForwardKinematics_;
-
-ForwardKinematics_ FK;
-
-float pre_theta1_FK = 0, pre_theta2_FK = 0, pre_theta3_FK = 0, pre_theta4_FK = 0, pre_theta_FK = 0;
-
-float px_qd = 0, py_qd = 0, pz_qd = 0, theta_qd = 0, time = 0;
-
-int16_t t1, t2, t3, t4;
-
-void calculate_FK(ForwardKinematics_ *FK, Setpoint_ *Setpoint, float theta1Value, float theta2Value, float theta3Value, float theta4Value) {
-
-	FK->theta1_FK = theta1Value;
-	FK->theta1_FK_rad = (FK->theta1_FK * M_PI) / 180.0;
-	Setpoint->setpoint1 = theta1Value;
-
-	FK->theta2_FK = theta2Value;
-	FK->theta2_FK_rad = (FK->theta2_FK * M_PI) / 180.0;
-	Setpoint->setpoint2 = theta2Value;
-
-	FK->theta3_FK = theta3Value;
-	FK->theta3_FK_rad = (FK->theta3_FK * M_PI) / 180.0;
-	Setpoint->setpoint3 = theta3Value;
-
-	FK->theta4_FK = theta4Value;
-	FK->theta4_FK_rad = (FK->theta4_FK * M_PI) / 180.0;
-	Setpoint->setpoint4 = theta4Value;
-
-	FK->psi_FK = FK->theta2_FK + FK->theta3_FK + FK->theta4_FK;
-	FK->psi_FK_rad = FK->theta2_FK_rad + FK->theta3_FK_rad + FK->theta4_FK_rad;
-
-	// Tính toán giá trị Px, Py, Pz
-	FK->Px_FK = cos(FK->theta1_FK_rad) * (L1 + L2 * cos(FK->theta2_FK_rad) + L3 * cos(FK->theta2_FK_rad + FK->theta3_FK_rad) + L4 * cos(FK->psi_FK_rad));
-
-	FK->Py_FK = sin(FK->theta1_FK_rad) * (L1 + L2 * cos(FK->theta2_FK_rad) + L3 * cos(FK->theta2_FK_rad + FK->theta3_FK_rad) + L4 * cos(FK->psi_FK_rad));
-
-	FK->Pz_FK = d1 + L3 * sin(FK->theta2_FK_rad + FK->theta3_FK_rad) + L2 * sin(FK->theta2_FK_rad) + L4 * sin(FK->psi_FK_rad);
-
-}
-//--------------Cal Forward Kinematics-----------//
-
-//--------------Cal Inverse Kinematics-----------//
-typedef struct{
-	float Px_IK;
-	float Py_IK;
-	float Pz_IK;
-
-	float Theta1_IK;
-	float Theta2_IK;
-	float Theta3_IK;
-	float Theta4_IK;
-	float Theta_IK;
-
-	float theta1_IK_rad;
-	float theta2_IK_rad;
-	float theta3_IK_rad;
-	float theta4_IK_rad;
-
-	float alpha;
-	float k;
-	float E;
-	float F;
-	float a;
-	float b;
-	float d;
-	float f;
-	float var_temp;
-	float c23;
-	float s23;
-	float t_rad;
-
-}InverseKinematics_;
-
-InverseKinematics_ IK;
-
-typedef struct{
-	float inputPx;
-	float inputPy;
-	float inputPz;
-	float inputTheta;
-}InputIK_;
-InputIK_ InputIK;
-
-float round_nearest(float value) {
-    return (value >= 0) ? floor(value + 0.5) : ceil(value - 0.5);
-}
-
-void calculate_IK_BN1(InverseKinematics_ *IK, Setpoint_ *Setpoint,float Px_value, float Py_value, float Pz_value, float Theta_value){
-
-    IK->Px_IK = Px_value;
-    IK->Py_IK = Py_value;
-    IK->Pz_IK = Pz_value;
-    IK->Theta_IK = Theta_value;
-
-    IK->t_rad = IK->Theta_IK * (M_PI / 180);
-    IK->k = sqrt(pow(IK->Px_IK, 2) + pow(IK->Py_IK, 2));
-    IK->theta1_IK_rad = atan2((IK->Py_IK / IK->k), (IK->Px_IK / IK->k));
-    IK->Theta1_IK = IK->theta1_IK_rad * (180 / M_PI);
-
-    if (IK->Theta1_IK < -180) {
-    	IK->Theta1_IK += 360;
-    } else if (IK->Theta1_IK > 180) {
-    	IK->Theta1_IK -= 360;
-    }
-    IK->Theta1_IK = round_nearest(IK->Theta1_IK);
-    Setpoint->setpoint1 = IK->Theta1_IK;
-
-    IK->E = IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L4 * cos(IK->t_rad);
-    IK->F = IK->Pz_IK - d1 - L4 * sin(IK->t_rad);
-    IK->a = -2 * L2 * IK->F;
-    IK->b = -2 * L2 * IK->E;
-    IK->d = pow(L3, 2) - pow(IK->E, 2) - pow(IK->F, 2) - pow(L2, 2);
-    IK->f = sqrt(pow(IK->a, 2) + pow(IK->b, 2));
-    IK->alpha = atan2(-2 * L2 * IK->F / IK->f, -2 * L2 * IK->E / IK->f);
-
-    IK->var_temp = pow(IK->d, 2) / pow(IK->f, 2);
-    if (IK->var_temp > 1) IK->var_temp = 1;
-
-    IK->theta2_IK_rad = atan2(sqrt(1 - IK->var_temp), IK->d / IK->f) + IK->alpha;
-    IK->Theta2_IK = IK->theta2_IK_rad * (180 / M_PI);
-
-    if (IK->Theta2_IK < -180) {
-    	IK->Theta2_IK += 360;
-    } else if (IK->Theta2_IK > 180) {
-    	IK->Theta2_IK -= 360;
-    }
-    IK->Theta2_IK = round_nearest(IK->Theta2_IK);
-    Setpoint->setpoint2 = IK->Theta2_IK;
-
-    IK->c23 = (IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L2 * cos(IK->theta2_IK_rad) - L4 * cos(IK->t_rad)) / L3;
-    IK->s23 = (IK->Pz_IK - d1 - L2 * sin(IK->theta2_IK_rad) - L4 * sin(IK->t_rad)) / L3;
-    IK->theta3_IK_rad = atan2(IK->s23, IK->c23) - IK->theta2_IK_rad;
-    IK->Theta3_IK = IK->theta3_IK_rad * (180 / M_PI);
-
-    if (IK->Theta3_IK < -180) {
-    	IK->Theta3_IK += 360;
-    } else if (IK->Theta3_IK > 180) {
-    	IK->Theta3_IK -= 360;
-    }
-    IK->Theta3_IK = round_nearest(IK->Theta3_IK);
-    Setpoint->setpoint3 = IK->Theta3_IK;
-
-    IK->theta4_IK_rad = IK->t_rad - IK->theta2_IK_rad - IK->theta3_IK_rad;
-    IK->Theta4_IK = IK->theta4_IK_rad * (180 / M_PI);
-    IK->Theta4_IK = round_nearest(IK->Theta4_IK);
-    Setpoint->setpoint4 = IK->Theta4_IK;
-}
-
-void calculate_IK_BN2(InverseKinematics_ *IK, Setpoint_ *Setpoint,float px_value, float py_value, float pz_value, float Theta_value) {
-
-	IK->Px_IK = px_value;
-	IK->Py_IK = py_value;
-	IK->Pz_IK = pz_value;
-	IK->Theta_IK = Theta_value;
-
-	IK->t_rad = IK->Theta_IK * (M_PI / 180);
-	IK->k = sqrt(pow(IK->Px_IK, 2) + pow(IK->Py_IK, 2));
-	IK->theta1_IK_rad = atan2((IK->Py_IK / IK->k), (IK->Px_IK / IK->k));
-	IK->Theta1_IK = IK->theta1_IK_rad * (180 / M_PI);
-
-    if (IK->Theta1_IK < -180) {
-    	IK->Theta1_IK += 360;
-    } else if (IK->Theta1_IK > 180) {
-    	IK->Theta1_IK -= 360;
-    }
-    IK->Theta1_IK = round_nearest(IK->Theta1_IK);
-    Setpoint->setpoint1 = IK->Theta1_IK;
-
-    IK->E = IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L4 * cos(IK->t_rad);
-    IK->F = IK->Pz_IK - d1 - L4 * sin(IK->t_rad);
-
-    IK->a = -2 * L2 * IK->F;
-    IK->b = -2 * L2 * IK->E;
-    IK->d = pow(L3, 2) - pow(IK->E, 2) - pow(IK->F, 2) - pow(L2, 2);
-    IK->f = sqrt(pow(IK->a, 2) + pow(IK->b, 2));
-    IK->alpha = atan2(-2 * L2 * IK->F / IK->f, -2 * L2 * IK->E / IK->f);
-
-    IK->var_temp = pow(IK->d, 2) / pow(IK->f, 2);
-    if (IK->var_temp > 1) IK->var_temp = 1;
-
-    IK->theta2_IK_rad = atan2(-sqrt(1 - IK->var_temp), IK->d / IK->f) + IK->alpha;
-    IK->Theta2_IK = IK->theta2_IK_rad * (180 / M_PI);
-
-    if (IK->Theta2_IK < -180) {
-    	IK->Theta2_IK += 360;
-    } else if (IK->Theta2_IK > 180) {
-    	IK->Theta2_IK -= 360;
-    }
-    IK->Theta2_IK = round_nearest(IK->Theta2_IK);
-    Setpoint->setpoint2 = IK->Theta2_IK;
-
-    IK->c23 = (IK->Px_IK * cos(IK->theta1_IK_rad) + IK->Py_IK * sin(IK->theta1_IK_rad) - L1 - L2 * cos(IK->theta2_IK_rad) - L4 * cos(IK->t_rad)) / L3;
-    IK->s23 = (IK->Pz_IK - d1 - L2 * sin(IK->theta2_IK_rad) - L4 * sin(IK->t_rad)) / L3;
-    IK->theta3_IK_rad = atan2(IK->s23, IK->c23) - IK->theta2_IK_rad;
-    IK->Theta3_IK = IK->theta3_IK_rad * (180 / M_PI);
-
-    if (IK->Theta3_IK < -180) {
-    	IK->Theta3_IK += 360;
-    } else if (IK->Theta3_IK > 180) {
-    	IK->Theta3_IK -= 360;
-    }
-    IK->Theta3_IK = round_nearest(IK->Theta3_IK);
-    Setpoint->setpoint3 = IK->Theta3_IK;
-
-    IK->theta4_IK_rad = IK->t_rad - IK->theta2_IK_rad - IK->theta3_IK_rad;
-    IK->Theta4_IK = IK->theta4_IK_rad * (180 / M_PI);
-    IK->Theta4_IK = round_nearest(IK->Theta4_IK);
-    Setpoint->setpoint4 = IK->Theta4_IK;
-}
-//--------------Cal Inverse Kinematics-----------//
-typedef struct {
-	float theta1;
-	float theta2;
-	float theta3;
-	float theta4;
-}_SetPoint_Nha;
-
-_SetPoint_Nha SetPoint_Nha;
-
-#define MAX_MESG 256
-char uartLogBuffer[MAX_MESG];
-uint8_t flag_uart_rx = 0;
-uint16_t uartLogRxSize;
-
-void UartIdle_Init()
-{
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, (uint8_t*)uartLogBuffer, MAX_MESG);
-  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
-}
 
 
-void UART_Handle(char* data, Setpoint_* Setpoint)
-{
-  if (flag_uart_rx == 1 && strstr(data, "\n"))  // Only process data when flag is set and newline is detected
-  {
-    if (strstr(data, "theta1"))  // Handle "theta1" data
-    {
-      if (sscanf(data, "theta1:%f,theta2:%f,theta3:%f,theta4:%f\n",
-                 &Setpoint->setpoint1, &Setpoint->setpoint2,
-                 &Setpoint->setpoint3, &Setpoint->setpoint4) == 4)
-      {
-          FlagStart.startUartFK = 1;
-      }
-    }
-    else if (strstr(data, "NhaT1"))  // Handle "theta1Nha" data
-    {
-      if (sscanf(data, "NhaT1:%f,NhaT2:%f,NhaT3:%f,NhaT4:%f\n",
-    		  &Setpoint->theta1_Nha, &Setpoint->theta2_Nha,
-		      &Setpoint->theta3_Nha, &Setpoint->theta4_Nha) == 4)
-      {
-        FlagStart.startUartIK = 1;
-      }
-    }
-    else if (strstr(data, "home"))  // Handle "home" command
-    {
-      // Add logic to handle "home" command
-    }
-    else if (strstr(data, "Reset"))  // Handle system reset
-    {
-      HAL_NVIC_SystemReset();  // Reset system
-    }
-    else if (strstr(data, "hut"))  // Handle "hut" command
-    {
-      // Add logic to handle "hut" command
-    }
-    else if (strstr(data, "nha"))  // Handle "nha" command
-    {
-      // Add logic to handle "nha" command
-    }
-    else if (strstr(data, "start"))  // Start program
-    {
-      FlagStart.startProgram = 1;
-    }
-    else if (strstr(data, "disconnected"))  // Handle disconnection
-    {
-      FlagStart.startProgram = 0;
-    }
-
-    flag_uart_rx = 0;   // Clear the UART RX flag after processing
-    memset(data, 0, uartLogRxSize);  // Clear the buffer
-  }
-}
-
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
-{
-  if (huart->Instance == USART1)
-  {
-    uartLogRxSize = Size;
-    flag_uart_rx = 1;
-	UART_Handle(uartLogBuffer, &Setpoint);
-
-    // Sau khi xử lý, kích hoạt lại nhận DMA
-    HAL_UARTEx_ReceiveToIdle_DMA(huart, (uint8_t*)uartLogBuffer, MAX_MESG);
-  }
-}
 /* USER CODE END 0 */
 
 /**

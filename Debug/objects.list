@@ -1,4 +1,5 @@
 "./Core/Src/Encoder.o"
+"./Core/Src/Kinematics.o"
 "./Core/Src/MotorDrive.o"
 "./Core/Src/PID.o"
 "./Core/Src/cJSON.o"

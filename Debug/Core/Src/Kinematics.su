@@ -1,0 +1,4 @@
+../Core/Src/Kinematics.c:13:6:calculate_FK	48	static
+../Core/Src/Kinematics.c:42:7:round_nearest	16	static
+../Core/Src/Kinematics.c:46:6:calculate_IK_BN1	56	static
+../Core/Src/Kinematics.c:107:6:calculate_IK_BN2	56	static
