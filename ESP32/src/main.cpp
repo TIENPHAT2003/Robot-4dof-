@@ -12,10 +12,8 @@
 #include "SoftwareSerial.h"
 
 SoftwareSerial mySerial(16,17);
-// #include <MergeData.h>
 void TaskCaptivePortal(void *pvParameter);
 void TaskFunction(void *pvParameter);
-void TaskModbus(void *pvParameter);
 
 #define MAX_CLIENTS 4
 #define WIFI_CHANNEL 6
@@ -214,31 +212,26 @@ void setUpDNSServer(DNSServer &dnsServer, const IPAddress &localIP) {
 void WebInit(){
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/html", HTML);
-    // request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 }//WebInit
 void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
-	// Required
-	server.on("/connecttest.txt", [](AsyncWebServerRequest *request) { request->redirect("http://logout.net"); });	// windows 11 captive portal workaround
-	server.on("/wpad.dat", [](AsyncWebServerRequest *request) { request->send(404); });								// Honestly don't understand what this is but a 404 stops win 10 keep calling this repeatedly and panicking the esp32 :)
 
-	// Background responses: Probably not all are Required, but some are. Others might speed things up?
-	// A Tier (commonly used by modern systems)
-	server.on("/generate_204", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });		   // android captive portal redirect
-	server.on("/redirect", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });			   // microsoft redirect
-	server.on("/hotspot-detect.html", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });  // apple call home
-	server.on("/canonical.html", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });	   // firefox captive portal call home
-	server.on("/success.txt", [](AsyncWebServerRequest *request) { request->send(200); });					   // firefox captive portal call home
-	server.on("/ncsi.txt", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });			   // windows call home
+	server.on("/connecttest.txt", [](AsyncWebServerRequest *request) { request->redirect("http://logout.net"); });
+	server.on("/wpad.dat", [](AsyncWebServerRequest *request) { request->send(404); });								
 
-	// return 404 to webpage icon
-	server.on("/favicon.ico", [](AsyncWebServerRequest *request) { request->send(404); });	// webpage icon
+	server.on("/generate_204", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });		  
+	server.on("/redirect", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });			  
+	server.on("/hotspot-detect.html", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });  
+	server.on("/canonical.html", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });	  
+	server.on("/success.txt", [](AsyncWebServerRequest *request) { request->send(200); });					   
+	server.on("/ncsi.txt", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });			  
 
-	// Serve Basic HTML Page
+	server.on("/favicon.ico", [](AsyncWebServerRequest *request) { request->send(404); });	
+
 	server.on("/", HTTP_ANY, [](AsyncWebServerRequest *request) {
 		AsyncWebServerResponse *response = request->beginResponse(200, "text/html", HTML);
     // AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/index.html", String(), false, processor);
-		response->addHeader("Cache-Control", "public,max-age=31536000");  // save this file to cache for 1 year (unless you refresh)
+		response->addHeader("Cache-Control", "public,max-age=31536000");  
 		request->send(response);
 		Serial.println("Served Basic HTML Page");
 	});
@@ -247,7 +240,7 @@ void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
 	server.onNotFound([](AsyncWebServerRequest *request) {
 		request->redirect(localIPURL);
 		Serial.print("onnotfound ");
-		Serial.print(request->host());	// This gives some insight into whatever was being requested on the serial monitor
+		Serial.print(request->host());
 		Serial.print(" ");
 		Serial.print(request->url());
 		Serial.print(" sent redirect to " + localIPURL + "\n");
@@ -266,7 +259,20 @@ void setup() {
   xTaskCreatePinnedToCore(TaskCaptivePortal, "CaptivePortal",30000,NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(TaskFunction, "Function", 30000, NULL, 2,NULL, 1);
 }
-void loop(){}
+void loop(){
+  if (mySerial.available()) {
+    String data = mySerial.readStringUntil('\n'); // Đọc cho đến khi gặp ký tự xuống dòng
+    Serial.println("Received Data: " + data);     // Hiển thị dữ liệu trên Serial monitor
+
+    // Tách và phân tích dữ liệu nếu cần
+    float t1, t2, t3, t4;
+    if (sscanf(data.c_str(), "t1:%f,t2:%f,t3:%f,t4:%f", &t1, &t2, &t3, &t4) == 4) {
+      Serial.printf("Angle t1: %.1f, t2: %.1f, t3: %.1f, t4: %.1f\n", t1, t2, t3, t4);
+    } else {
+      Serial.println("Data format error.");
+    }
+  }
+}
 
 void TaskCaptivePortal(void *pvParameter){
   for(;;){

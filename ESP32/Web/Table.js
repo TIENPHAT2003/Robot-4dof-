@@ -10,34 +10,50 @@ const gridSize = 800;
 const pointsPerSide = 11; 
 const spacing = gridSize / (pointsPerSide - 1);
 
-// Create the intersection points dynamically
-for (let row = 0; row < pointsPerSide; row++) {
-    for (let col = 0; col < pointsPerSide; col++) {
+// Tạo các điểm giao nhau một cách động
+for (let col = 0; col < pointsPerSide; col++) {
+    for (let row = 0; row < pointsPerSide; row++) {
         const point = document.createElement('div');
         point.classList.add('point');
-        point.style.top = `${gridSize - row * spacing}px`; 
-        point.style.left = `${col * spacing}px`;
+        point.style.left = `${gridSize - row * spacing}px`; 
+        point.style.top = `${col * spacing}px`;
         point.setAttribute('data-row', row); 
         point.setAttribute('data-col', col); 
         point.addEventListener('click', () => selectPoint(point));
         gridContainer.appendChild(point);
     } 
 }
+for (let i = 0; i < pointsPerSide; i++) {
+    const xValue = (100 + i * -20);
+    const yValue = (100 + i * 20);  
 
-// Function to handle point selection
+    const xLabel = document.createElement('div');
+    xLabel.classList.add('axis-label', 'x-label');
+    xLabel.style.left = `${i * spacing}px`;
+    xLabel.textContent = xValue;
+    gridContainer.appendChild(xLabel);
+
+    const yLabel = document.createElement('div');
+    yLabel.classList.add('axis-label', 'y-label');
+    yLabel.style.top = `${gridSize - i * spacing}px`; 
+    yLabel.textContent = yValue;
+    gridContainer.appendChild(yLabel);
+}
+// Hàm xử lý khi chọn điểm
 function selectPoint(point) {
     selectedPoint = point; 
     point.classList.add('selected');
 
-    // Get the row and column from the selected point
     const row = point.getAttribute('data-row');
     const col = point.getAttribute('data-col');
     
-    // Calculate the coordinates
-    const xValue = -100 + col * 20; 
-    const yValue = 100 + row * 20;  
+    const xValue = 100 + (10 - col) * 20; 
+    const yValue = -100 + row * 20; 
+
     console.log(`Selected point coordinates: (${xValue}, ${yValue})`);
 }
+
+
 
 function setPoint() {
     if (selectedPoint) {
@@ -59,33 +75,16 @@ document.getElementById('buttonSelectPoint').addEventListener('click', () => {
     }
 });
 
-for (let i = 0; i < pointsPerSide; i++) {
-    const xValue = (-100 + i * 20);
-    const yValue = (100 + i * 20);  
 
-    // Create x-axis labels at the bottom
-    const xLabel = document.createElement('div');
-    xLabel.classList.add('axis-label', 'x-label');
-    xLabel.style.left = `${i * spacing}px`;
-    xLabel.textContent = xValue;
-    gridContainer.appendChild(xLabel);
-
-    const yLabel = document.createElement('div');
-    yLabel.classList.add('axis-label', 'y-label');
-    yLabel.style.top = `${gridSize - i * spacing}px`; 
-    yLabel.textContent = yValue;
-    gridContainer.appendChild(yLabel);
-}
 
 
 function calculateInverseKinematicsSetPoint(point){
-    // Get the row and column from the selected point
     const row = point.getAttribute('data-row');
     const col = point.getAttribute('data-col');
     
-    // Calculate the coordinates
-    const xValue = -100 + col * 20; 
-    const yValue = 100 + row * 20;   
+    const xValue = 100 + (10 - col) * 20; 
+    const yValue = -100 + row * 20; 
+
 
     var Px_IK = parseFloat(`${xValue}`);
     var Py_IK = parseFloat(`${yValue}`);
@@ -145,7 +144,7 @@ function calculateInverseKinematicsSetPoint(point){
     theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
     Theta4_IK = theta4_IK_rad * (180 / Math.PI);
     Theta4_IK = Math.round(Theta4_IK);
-    if((Theta2_IK + Theta3_IK) > 90 || (Theta2_IK + Theta3_IK) < -90 ||Theta1_IK > 90 || Theta1_IK < -90 || Theta2_IK > 90 || Theta2_IK < -90 || Theta3_IK > 90 || Theta3_IK < -90 || Theta4_IK > 90 || Theta4_IK < -90) {
+    if(Theta1_IK > 90 || Theta1_IK < -90 || Theta2_IK > 90 || Theta2_IK < -90 || Theta3_IK > 90 || Theta3_IK < -90 || Theta4_IK > 90 || Theta4_IK < -90) {
         var modal = new bootstrap.Modal(document.getElementById('wrongInputModal'));
         modal.show();
         setTimeout(function () { modal.hide(); }, 1000);
@@ -172,9 +171,10 @@ function calculateInverseKinematicsSetPoint(point){
 function calculateInverseKinematicsSelectPoint(point) {
     const row = point.getAttribute('data-row');
     const col = point.getAttribute('data-col');
+    
+    const xValue = 100 + (10 - col) * 20; 
+    const yValue = -100 + row * 20; 
 
-    const xValue = -100 + col * 20;
-    const yValue = 100 + row * 20;
 
     var Px_IK = parseFloat(`${xValue}`);
     var Py_IK = parseFloat(`${yValue}`);
@@ -235,14 +235,12 @@ function calculateInverseKinematicsSelectPoint(point) {
     Theta4_IK = theta4_IK_rad * (180 / Math.PI);
     Theta4_IK = Math.round(Theta4_IK);
 
-    // Error handling based on calculated angles
-    if((Theta2_IK + Theta3_IK) > 90 || (Theta2_IK + Theta3_IK) < -90 || Theta1_IK > 90 || Theta1_IK < -90 || Theta2_IK > 90 || Theta2_IK < -90 || Theta3_IK > 90 || Theta3_IK < -90 || Theta4_IK > 90 || Theta4_IK < -90) {
+    if( Theta1_IK > 90 || Theta1_IK < -90 || Theta2_IK > 90 || Theta2_IK < -90 || Theta3_IK > 90 || Theta3_IK < -90 || Theta4_IK > 90 || Theta4_IK < -90) {
         var modal = new bootstrap.Modal(document.getElementById('wrongInputModal'));
         modal.show();
         setTimeout(function () { modal.hide(); }, 1000);
     }
     else {
-        // Update UI elements with the calculated values
         selectedPoint.textContent = counter + 1;
         selectedPoint.classList.add('selected');
         document.getElementById('px').value = Px_IK;
@@ -255,7 +253,6 @@ function calculateInverseKinematicsSelectPoint(point) {
         document.getElementById('theta3').value = Theta3_IK;
         document.getElementById('theta4').value = Theta4_IK;
 
-        // Store point data in the appData array
         const pointData = {
             "Point": app.toString(),
             "Theta1": Theta1_IK,
@@ -266,13 +263,11 @@ function calculateInverseKinematicsSelectPoint(point) {
 
         appData.push(pointData);
 
-        // Construct the JSON object
         const jsonApp = {
             "Command": "SelectPoint",
             "Data": appData
         };
 
-        // Convert the object to a JSON string
         const jsonString = JSON.stringify(jsonApp);
         jsonSelectPoint = jsonString;
         console.log(jsonString);

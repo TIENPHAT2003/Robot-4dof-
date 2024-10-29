@@ -99,7 +99,7 @@ typedef struct{
 	uint8_t starKinematics;
 	uint8_t SetPoint_Nha;
 	uint8_t SetPoint_Hut;
-	uint8_t Fail;
+	uint8_t startQD;
 }FlagStart_;
 FlagStart_ FlagStart;
 
@@ -166,10 +166,7 @@ typedef struct{
 	float theta3_Nha;
 	float theta4_Nha;
 
-	float theta1_Hut;
-	float theta2_Hut;
-	float theta3_Hut;
-	float theta4_Hut;
+	int countPoint;
 	Point points[MAX_POINTS];
 }Setpoint_;
 Setpoint_ Setpoint;
@@ -186,7 +183,8 @@ float p(float p0, float pf, float tf, float v0, float vf, float T)
 char uartLogBuffer[MAX_MESG];
 uint8_t flag_uart_rx = 0;
 uint16_t uartLogRxSize;
-
+char dataAngle[128];
+uint8_t count = 0;
 void UartIdle_Init()
 {
   HAL_UARTEx_ReceiveToIdle_DMA(&huart1, (uint8_t*)uartLogBuffer, MAX_MESG);
@@ -200,7 +198,6 @@ void UART_Handle(char* data, Setpoint_* Setpoint)
 
     if (flag_uart_rx == 1 && strstr(data, "\n"))
     {
-        // Check for specific commands
         if (strstr(data, "theta1"))
         {
             if (sscanf(data, "theta1:%f,theta2:%f,theta3:%f,theta4:%f\n",
@@ -234,16 +231,17 @@ void UART_Handle(char* data, Setpoint_* Setpoint)
 						float theta1, theta2, theta3, theta4;
 
 
-						if (sscanf(token, "Point:%d, HutT1:%f, HutT2:%f, HutT3:%f, HutT4:%f",
-								   &pointId, &theta1, &theta2, &theta3, &theta4) == 5) {
+						if (sscanf(token, "Point:%d, HutT1:%f, HutT2:%f, HutT3:%f, HutT4:%f", &pointId, &theta1, &theta2, &theta3, &theta4) == 5) {
 							Setpoint->points[pointId].theta1 = theta1;
 							Setpoint->points[pointId].theta2 = theta2;
 							Setpoint->points[pointId].theta3 = theta3;
 							Setpoint->points[pointId].theta4 = theta4;
 							FlagStart.SetPoint_Hut = 1;
+							Setpoint->countPoint++;
 						}
 						else{
-							FlagStart.Fail = 1;
+							FlagStart.startQD = 1;
+							count = 0;
 						}
 						token = strtok_r(NULL, ";", &savePtr);
 					}
@@ -565,6 +563,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -1088,8 +1088,28 @@ void StartTaskLogic(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
+
   for(;;)
   {
+	  if(FlagStart.startQD == 1){
+		  if(count < Setpoint.countPoint){
+			  Setpoint.setpoint1 = Setpoint.points[count].theta1;
+			  Setpoint.setpoint2 = Setpoint.points[count].theta2;
+			  Setpoint.setpoint3 = Setpoint.points[count].theta3;
+			  Setpoint.setpoint4 = Setpoint.points[count].theta4;
+
+			  osDelay(3000);
+
+			  Setpoint.setpoint1 = Setpoint.theta1_Nha;
+			  Setpoint.setpoint2 = Setpoint.theta2_Nha;
+			  Setpoint.setpoint3 = Setpoint.theta3_Nha;
+			  Setpoint.setpoint4 = Setpoint.theta4_Nha;
+
+			  osDelay(3000);
+
+			  count++;
+		  }
+	  }
 
     osDelay(10);
   }
@@ -1271,6 +1291,7 @@ void StartTaskTrajectory(void const * argument)
 				mode = 4;
 				break;
 			case 4:
+
 				  if (Setpoint.setpoint1 != Setpoint.preSetpoint1)
 				  {
 					T1 = 0;
@@ -1301,6 +1322,7 @@ void StartTaskTrajectory(void const * argument)
 			default:
 			  break;
 		}
+
 	}
     osDelay(1);
   }
