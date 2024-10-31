@@ -1,5 +1,5 @@
-let counter = 0; // Initialize the counter
-let selectedPoint = null; // Variable to keep track of the currently selected point
+let counter = 0; 
+let selectedPoint = null; 
 var jsonSetPoint = ""; 
 var jsonSelectPoint = ""; 
 var appData = [];
@@ -10,7 +10,6 @@ const gridSize = 800;
 const pointsPerSide = 11; 
 const spacing = gridSize / (pointsPerSide - 1);
 
-// Tạo các điểm giao nhau một cách động
 for (let col = 0; col < pointsPerSide; col++) {
     for (let row = 0; row < pointsPerSide; row++) {
         const point = document.createElement('div');
@@ -39,7 +38,7 @@ for (let i = 0; i < pointsPerSide; i++) {
     yLabel.textContent = yValue;
     gridContainer.appendChild(yLabel);
 }
-// Hàm xử lý khi chọn điểm
+
 function selectPoint(point) {
     selectedPoint = point; 
     point.classList.add('selected');
@@ -53,8 +52,6 @@ function selectPoint(point) {
     console.log(`Selected point coordinates: (${xValue}, ${yValue})`);
 }
 
-
-
 function setPoint() {
     if (selectedPoint) {
         calculateInverseKinematicsSetPoint(selectedPoint);
@@ -63,8 +60,6 @@ function setPoint() {
     }
 }
 
-
-// Attach event listeners to buttons
 document.getElementById('buttonSetPoint').addEventListener('click', setPoint);
 document.getElementById('buttonSelectPoint').addEventListener('click', () => {
     if (selectedPoint) {
@@ -74,9 +69,6 @@ document.getElementById('buttonSelectPoint').addEventListener('click', () => {
         console.log("No point selected."); 
     }
 });
-
-
-
 
 function calculateInverseKinematicsSetPoint(point){
     const row = point.getAttribute('data-row');
@@ -152,15 +144,7 @@ function calculateInverseKinematicsSetPoint(point){
     else{
         selectedPoint.textContent = "SetPoint"; 
         selectedPoint.classList.add('setpoint'); 
-        document.getElementById('px').value = Px_IK;
-        document.getElementById('py').value = Py_IK;
-        document.getElementById('pz').value = Pz_IK;
-        document.getElementById('theta').value = Theta_IK;
 
-        document.getElementById('theta1').value = Theta1_IK;
-        document.getElementById('theta2').value = Theta2_IK;
-        document.getElementById('theta3').value = Theta3_IK;
-        document.getElementById('theta4').value = Theta4_IK;
         var jsonSetPoint = "{'Command': 'SetPoint', 'Theta1':'"+ Theta1_IK +"','Theta2':'"+ Theta2_IK +"','Theta3':'"+ Theta3_IK +"','Theta4':'"+ Theta4_IK +"'}";
         console.log(jsonSetPoint);
         websocket.send(jsonSetPoint);
@@ -243,15 +227,6 @@ function calculateInverseKinematicsSelectPoint(point) {
     else {
         selectedPoint.textContent = counter + 1;
         selectedPoint.classList.add('selected');
-        document.getElementById('px').value = Px_IK;
-        document.getElementById('py').value = Py_IK;
-        document.getElementById('pz').value = Pz_IK;
-        document.getElementById('theta').value = Theta_IK;
-
-        document.getElementById('theta1').value = Theta1_IK;
-        document.getElementById('theta2').value = Theta2_IK;
-        document.getElementById('theta3').value = Theta3_IK;
-        document.getElementById('theta4').value = Theta4_IK;
 
         const pointData = {
             "Point": app.toString(),

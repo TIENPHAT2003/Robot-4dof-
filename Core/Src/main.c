@@ -56,6 +56,7 @@ TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
+TIM_HandleTypeDef htim12;
 
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_rx;
@@ -64,6 +65,7 @@ osThreadId TaskLogicHandle;
 osThreadId TaskSetHomeHandle;
 osThreadId TaskCalPIDHandle;
 osThreadId TaskTrajectoryHandle;
+osThreadId TaskUartHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -80,10 +82,12 @@ static void MX_TIM5_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM9_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM12_Init(void);
 void StartTaskLogic(void const * argument);
 void StartTaskSetHome(void const * argument);
 void StartTaskPID(void const * argument);
 void StartTaskTrajectory(void const * argument);
+void StartTaskUart(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -132,6 +136,11 @@ typedef struct{
 	float AngleLink2;
 	float AngleLink3;
 	float AngleLink4;
+
+	float preAngleLink1;
+	float preAngleLink2;
+	float preAngleLink3;
+	float preAngleLink4;
 }Angle_;
 Angle_ Angle;
 //----------------GLOBAL VARIABLE------------------//
@@ -179,11 +188,14 @@ float p(float p0, float pf, float tf, float v0, float vf, float T)
     return p0+v0*T+(3*(pf-p0)/(tf*tf)-2*v0/tf-vf/tf)*(T*T)+(-2*(pf-p0)/(tf*tf*tf)+(vf+v0)/(tf*tf))*(T*T*T);
 }
 //--------------TRAJECTORY PLANNING----------------//
+
+
 #define MAX_MESG 2048
 char uartLogBuffer[MAX_MESG];
 uint8_t flag_uart_rx = 0;
 uint16_t uartLogRxSize;
 char dataAngle[128];
+uint16_t count_timer = 0;
 uint8_t count = 0;
 void UartIdle_Init()
 {
@@ -489,6 +501,7 @@ int main(void)
   MX_TIM8_Init();
   MX_TIM9_Init();
   MX_USART1_UART_Init();
+  MX_TIM12_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
@@ -498,6 +511,8 @@ int main(void)
   HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_4);
+
+  HAL_TIM_Base_Start_IT(&htim12);
 
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
@@ -551,6 +566,10 @@ int main(void)
   osThreadDef(TaskTrajectory, StartTaskTrajectory, osPriorityBelowNormal, 0, 128);
   TaskTrajectoryHandle = osThreadCreate(osThread(TaskTrajectory), NULL);
 
+  /* definition and creation of TaskUart */
+  osThreadDef(TaskUart, StartTaskUart, osPriorityIdle, 0, 128);
+  TaskUartHandle = osThreadCreate(osThread(TaskUart), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -563,8 +582,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -992,6 +1009,44 @@ static void MX_TIM9_Init(void)
 }
 
 /**
+  * @brief TIM12 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM12_Init(void)
+{
+
+  /* USER CODE BEGIN TIM12_Init 0 */
+
+  /* USER CODE END TIM12_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+
+  /* USER CODE BEGIN TIM12_Init 1 */
+
+  /* USER CODE END TIM12_Init 1 */
+  htim12.Instance = TIM12;
+  htim12.Init.Prescaler = 72-1;
+  htim12.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim12.Init.Period = 1000-1;
+  htim12.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim12.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim12) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim12, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM12_Init 2 */
+
+  /* USER CODE END TIM12_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -1052,6 +1107,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -1265,6 +1321,7 @@ void StartTaskTrajectory(void const * argument)
 				if(T1 < Tf){
 					T1 += 5;
 					Angle.AngleLink1 = p(Setpoint.p0_1, Setpoint.setpoint1, Tf, 0, 0, T1);
+					Angle.preAngleLink1 = Angle.AngleLink1;
 				}
 				mode = 1;
 				break;
@@ -1272,6 +1329,7 @@ void StartTaskTrajectory(void const * argument)
 				if(T2 < Tf){
 					T2 += 5;
 					Angle.AngleLink2 = p(Setpoint.p0_2, Setpoint.setpoint2, Tf, 0, 0, T2);
+					Angle.preAngleLink2 = Angle.AngleLink2;
 				}
 				mode = 2;
 				break;
@@ -1280,6 +1338,7 @@ void StartTaskTrajectory(void const * argument)
 				if(T3 < Tf){
 					T3 += 5;
 					Angle.AngleLink3 = p(Setpoint.p0_3, Setpoint.setpoint3, Tf, 0, 0, T3);
+					Angle.preAngleLink3 = Angle.AngleLink3;
 				}
 				mode = 3;
 				break;
@@ -1287,6 +1346,7 @@ void StartTaskTrajectory(void const * argument)
 				if(T4 < Tf){
 					T4 += 5;
 					Angle.AngleLink4 = p(Setpoint.p0_4, Setpoint.setpoint4, Tf, 0, 0, T4);
+					Angle.preAngleLink4 = Angle.AngleLink4;
 				}
 				mode = 4;
 				break;
@@ -1329,6 +1389,25 @@ void StartTaskTrajectory(void const * argument)
   /* USER CODE END StartTaskTrajectory */
 }
 
+/* USER CODE BEGIN Header_StartTaskUart */
+/**
+* @brief Function implementing the TaskUart thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTaskUart */
+void StartTaskUart(void const * argument)
+{
+  /* USER CODE BEGIN StartTaskUart */
+  /* Infinite loop */
+  for(;;)
+  {
+
+    osDelay(10);
+  }
+  /* USER CODE END StartTaskUart */
+}
+
 /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM14 interrupt took place, inside
@@ -1346,7 +1425,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  if(htim->Instance == TIM12){
+	if(FlagStart.startProgram == 1){
+		count_timer++;
+		if(count_timer >= 100){
+		  sprintf(dataAngle, "t1:%.1f,t2:%.1f,t3:%.1f,t4:%.1f\n", (float)Angle.AngleLink1, (float)Angle.AngleLink2, (float)Angle.AngleLink3, (float)Angle.AngleLink4);
+		  HAL_UART_Transmit_IT(&huart1, (uint8_t*)dataAngle, strlen(dataAngle));
+		  count_timer = 0;
+		}
+	}
+  }
   /* USER CODE END Callback 1 */
 }
 

@@ -268,10 +268,19 @@ void loop(){
     float t1, t2, t3, t4;
     if (sscanf(data.c_str(), "t1:%f,t2:%f,t3:%f,t4:%f", &t1, &t2, &t3, &t4) == 4) {
       Serial.printf("Angle t1: %.1f, t2: %.1f, t3: %.1f, t4: %.1f\n", t1, t2, t3, t4);
+      
+      // Xây dựng chuỗi JSON
+      String jsonAngle = "{\"Command\":\"Angle\", \"Theta1\":" + String(t1, 1) + 
+                         ", \"Theta2\":" + String(t2, 1) + 
+                         ", \"Theta3\":" + String(t3, 1) + 
+                         ", \"Theta4\":" + String(t4, 1) + "}";
+      Serial.println("Position: " + jsonAngle);
+      notifyClients(jsonAngle);
     } else {
       Serial.println("Data format error.");
     }
-  }
+}
+
 }
 
 void TaskCaptivePortal(void *pvParameter){

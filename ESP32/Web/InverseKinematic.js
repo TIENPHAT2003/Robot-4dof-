@@ -89,15 +89,6 @@ function calculateInverseKinematics(){
             document.getElementById('theta3IK').value = Theta3_IK;
             document.getElementById('theta4IK').value = Theta4_IK;
             
-            document.getElementById('px').value = Px_IK;
-            document.getElementById('py').value = Py_IK;
-            document.getElementById('pz').value = Pz_IK;
-            document.getElementById('theta').value = Theta_IK;
-        
-            document.getElementById('theta1').value = Theta1_IK;
-            document.getElementById('theta2').value = Theta2_IK;
-            document.getElementById('theta3').value = Theta3_IK;
-            document.getElementById('theta4').value = Theta4_IK;
             var jsonIK = "{'Command': 'inversekinematics', 'Theta1':'"+ Theta1_IK +"','Theta2':'"+ Theta2_IK +"','Theta3':'"+ Theta3_IK +"','Theta4':'"+ Theta4_IK +"'}";
             console.log(jsonIK);
             websocket.send(jsonIK);

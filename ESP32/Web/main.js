@@ -19,11 +19,8 @@ function onClose(event) {
 }
 function onMessage(event) {
     var message = JSON.parse(event.data);
-    if(message.Command == "forwardkinematics"){
-
-    }
-    else if(message.Command == "inversekinematics"){
-
+    if(message.Command == "Angle"){
+        CurrentPosition(event.data);
     }
 }
 function onLoad(event) {
