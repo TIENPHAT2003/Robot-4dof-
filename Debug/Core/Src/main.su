@@ -29,8 +29,8 @@
 ../Core/Src/main.c:1098:13:MX_GPIO_Init	48	static
 ../Core/Src/main.c:1138:6:StartTaskLogic	16	static
 ../Core/Src/main.c:1177:6:StartTaskSetHome	24	static
-../Core/Src/main.c:1283:6:StartTaskPID	16	static
-../Core/Src/main.c:1306:6:StartTaskTrajectory	16	static
-../Core/Src/main.c:1390:6:StartTaskUart	16	static
-../Core/Src/main.c:1410:6:HAL_TIM_PeriodElapsedCallback	64	static
-../Core/Src/main.c:1436:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:1289:6:StartTaskPID	16	static
+../Core/Src/main.c:1312:6:StartTaskTrajectory	16	static
+../Core/Src/main.c:1396:6:StartTaskUart	16	static
+../Core/Src/main.c:1416:6:HAL_TIM_PeriodElapsedCallback	64	static
+../Core/Src/main.c:1442:6:Error_Handler	4	static,ignoring_inline_asm

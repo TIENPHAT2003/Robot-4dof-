@@ -23,6 +23,9 @@ function checkPassword(password){
     var jsonreset = "{'Command': 'Reset'}";
     console.log(jsonreset);
     websocket.send(jsonreset);
+    var jsonSetHome = "{'Command': 'SetHome'}";
+    console.log(jsonSetHome);
+    websocket.send(jsonSetHome);
 }
 function unlockSuccess() {
     var modal = new bootstrap.Modal(document.getElementById('successModal'));

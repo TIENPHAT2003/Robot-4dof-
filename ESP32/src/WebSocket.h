@@ -147,6 +147,10 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
             {
                 sendSelectPointData();
             }
+            else if(command == "SetHome"){
+              mySerial.println("home\n");
+              Serial.println("home\n");
+            }
         }
     }
 }

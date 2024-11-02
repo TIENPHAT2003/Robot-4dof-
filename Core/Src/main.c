@@ -260,7 +260,7 @@ void UART_Handle(char* data, Setpoint_* Setpoint)
         }
         else if (strstr(data, "home"))
         {
-            // Handle "home" command here
+            FlagStart.startSetHome = 0;
         }
         else if (strstr(data, "Reset"))
         {
@@ -1149,14 +1149,14 @@ void StartTaskLogic(void const * argument)
 			  Setpoint.setpoint3 = Setpoint.points[count].theta3;
 			  Setpoint.setpoint4 = Setpoint.points[count].theta4;
 
-			  osDelay(3000);
+			  osDelay(5000);
 
 			  Setpoint.setpoint1 = Setpoint.theta1_Nha;
 			  Setpoint.setpoint2 = Setpoint.theta2_Nha;
 			  Setpoint.setpoint3 = Setpoint.theta3_Nha;
 			  Setpoint.setpoint4 = Setpoint.theta4_Nha;
 
-			  osDelay(3000);
+			  osDelay(5000);
 
 			  count++;
 		  }
@@ -1184,13 +1184,19 @@ void StartTaskSetHome(void const * argument)
 	sensor.sensor2 = HAL_GPIO_ReadPin(Sensor_J2_GPIO_Port, Sensor_J2_Pin);
 	sensor.sensor3 = HAL_GPIO_ReadPin(Sensor_J3_GPIO_Port, Sensor_J3_Pin);
 	sensor.sensor4 = HAL_GPIO_ReadPin(Sensor_J4_GPIO_Port, Sensor_J4_Pin);
-	if(FlagStart.startSetHome == 1){
+	if(FlagStart.startSetHome == 0){
 		sethomeJ.sethomeJ1 = 0;
 		sethomeJ.sethomeJ2 = 0;
 		sethomeJ.sethomeJ3 = 0;
 		sethomeJ.sethomeJ4 = 0;
 		FlagStart.startProgram = 0;
-		FlagStart.startSetHome = 0;
+
+		SpeedSetHomeJ.SpeedSetHomeJ1 = -400;
+		SpeedSetHomeJ.SpeedSetHomeJ2 = 400;
+		SpeedSetHomeJ.SpeedSetHomeJ3 = -300;
+		SpeedSetHomeJ.SpeedSetHomeJ4 = 300;
+
+		FlagStart.startSetHome = 1;
 	}
 	if(FlagStart.startProgram == 0){
 		if(sethomeJ.sethomeJ1 == 0){
@@ -1205,7 +1211,7 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-				SpeedSetHomeJ.SpeedSetHomeJ1 = -400;
+//				SpeedSetHomeJ.SpeedSetHomeJ1 = -400;
 				if(CountRead(&ENC_LINK1, count_ModeDegree) > 90 && SpeedSetHomeJ.SpeedSetHomeJ1 > 0){
 					SpeedSetHomeJ.SpeedSetHomeJ1 *= -1;
 				}
@@ -1228,7 +1234,7 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-				SpeedSetHomeJ.SpeedSetHomeJ2 = 400;
+//				SpeedSetHomeJ.SpeedSetHomeJ2 = 400;
 				Drive(&Motor_LINK2, &htim4, SpeedSetHomeJ.SpeedSetHomeJ2, TIM_CHANNEL_3, TIM_CHANNEL_4);
 			}
 		}
@@ -1244,7 +1250,7 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-				SpeedSetHomeJ.SpeedSetHomeJ3 = -300;
+//				SpeedSetHomeJ.SpeedSetHomeJ3 = -300;
 				Drive(&Motor_LINK3, &htim4, SpeedSetHomeJ.SpeedSetHomeJ3, TIM_CHANNEL_1, TIM_CHANNEL_2);
 			}
 		}
@@ -1260,7 +1266,7 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-				SpeedSetHomeJ.SpeedSetHomeJ4 = 300;
+//				SpeedSetHomeJ.SpeedSetHomeJ4 = 300;
 				Drive(&Motor_LINK4, &htim9, SpeedSetHomeJ.SpeedSetHomeJ4, TIM_CHANNEL_1, TIM_CHANNEL_2);
 			}
 		}
