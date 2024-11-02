@@ -216,7 +216,7 @@ void WebInit(){
 }//WebInit
 void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
 
-	server.on("/connecttest.txt", [](AsyncWebServerRequest *request) { request->redirect("http://logout.net"); });
+	server.on("/connecttest.txt", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });
 	server.on("/wpad.dat", [](AsyncWebServerRequest *request) { request->send(404); });								
 
 	server.on("/generate_204", [](AsyncWebServerRequest *request) { request->redirect(localIPURL); });		  
@@ -229,8 +229,8 @@ void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
 	server.on("/favicon.ico", [](AsyncWebServerRequest *request) { request->send(404); });	
 
 	server.on("/", HTTP_ANY, [](AsyncWebServerRequest *request) {
-		AsyncWebServerResponse *response = request->beginResponse(200, "text/html", HTML);
-    // AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/index.html", String(), false, processor);
+		// AsyncWebServerResponse *response = request->beginResponse(200, "text/html", HTML);
+    AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/web.html", "text/html");
 		response->addHeader("Cache-Control", "public,max-age=31536000");  
 		request->send(response);
 		Serial.println("Served Basic HTML Page");

@@ -1,7 +1,7 @@
 var     L1 	=	91
 var     L2	=	122
 var     L3	=	77
-var     L4	=	78
+var     L4	=	79.5
 var     d1	=	(62 + 176)
 function updateJointAngleFromInput(joint) {
     const inputValue = document.getElementById(joint).value;
@@ -25,11 +25,7 @@ function calculateForwardKinematics() {
     var theta2Value = parseFloat(document.getElementById('theta2FK').value);
     var theta3Value = parseFloat(document.getElementById('theta3FK').value);
     var theta4Value = parseFloat(document.getElementById('theta4FK').value);
-    // if((theta2Value + theta3Value) > 90 || (theta2Value + theta3Value) < -90){
-    //     var modal = new bootstrap.Modal(document.getElementById('wrongInputModal'));
-    //     modal.show();
-    //     setTimeout(function () { modal.hide(); }, 1000);
-    // }
+
     let theta1_FK, theta2_FK, theta3_FK, theta4_FK;
     let theta1_FK_rad, theta2_FK_rad, theta3_FK_rad, theta4_FK_rad;
     let Px_FK, Py_FK, Pz_FK, theta_FK, theta_FK_rad;
