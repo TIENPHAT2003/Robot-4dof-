@@ -136,11 +136,6 @@ typedef struct{
 	float AngleLink2;
 	float AngleLink3;
 	float AngleLink4;
-
-	float preAngleLink1;
-	float preAngleLink2;
-	float preAngleLink3;
-	float preAngleLink4;
 }Angle_;
 Angle_ Angle;
 //----------------GLOBAL VARIABLE------------------//
@@ -1321,7 +1316,6 @@ void StartTaskTrajectory(void const * argument)
 				if(T1 < Tf){
 					T1 += 5;
 					Angle.AngleLink1 = p(Setpoint.p0_1, Setpoint.setpoint1, Tf, 0, 0, T1);
-					Angle.preAngleLink1 = Angle.AngleLink1;
 				}
 				mode = 1;
 				break;
@@ -1329,7 +1323,6 @@ void StartTaskTrajectory(void const * argument)
 				if(T2 < Tf){
 					T2 += 5;
 					Angle.AngleLink2 = p(Setpoint.p0_2, Setpoint.setpoint2, Tf, 0, 0, T2);
-					Angle.preAngleLink2 = Angle.AngleLink2;
 				}
 				mode = 2;
 				break;
@@ -1338,7 +1331,6 @@ void StartTaskTrajectory(void const * argument)
 				if(T3 < Tf){
 					T3 += 5;
 					Angle.AngleLink3 = p(Setpoint.p0_3, Setpoint.setpoint3, Tf, 0, 0, T3);
-					Angle.preAngleLink3 = Angle.AngleLink3;
 				}
 				mode = 3;
 				break;
@@ -1346,7 +1338,6 @@ void StartTaskTrajectory(void const * argument)
 				if(T4 < Tf){
 					T4 += 5;
 					Angle.AngleLink4 = p(Setpoint.p0_4, Setpoint.setpoint4, Tf, 0, 0, T4);
-					Angle.preAngleLink4 = Angle.AngleLink4;
 				}
 				mode = 4;
 				break;
@@ -1428,7 +1419,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if(htim->Instance == TIM12){
 	if(FlagStart.startProgram == 1){
 		count_timer++;
-		if(count_timer >= 100){
+		if(count_timer >= 200){
 		  sprintf(dataAngle, "t1:%.1f,t2:%.1f,t3:%.1f,t4:%.1f\n", (float)Angle.AngleLink1, (float)Angle.AngleLink2, (float)Angle.AngleLink3, (float)Angle.AngleLink4);
 		  HAL_UART_Transmit_IT(&huart1, (uint8_t*)dataAngle, strlen(dataAngle));
 		  count_timer = 0;
