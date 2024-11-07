@@ -31,6 +31,7 @@ function initButton() {
     document.getElementById("buttonstart").addEventListener("click", openPageControlller);
     document.getElementById("buttonKinematics").addEventListener("click", openKinematics);
     document.getElementById("buttonAuto").addEventListener("click", openAuto);
+    // document.getElementById("buttonControl").addEventListener("click", openControl);
 }
 function openPageControlller(){
     document.getElementById("PageController").style.display = "block";
@@ -43,8 +44,15 @@ function openPageControlller(){
 function openKinematics(){
     document.getElementById("Kinematics").style.display = "block";
     document.getElementById("Auto").style.display = "none";
+    document.getElementById("Control").style.display = "none";
 }
 function openAuto(){
     document.getElementById("Kinematics").style.display = "none";
     document.getElementById("Auto").style.display = "block";
+    document.getElementById("Control").style.display = "none";
+}
+function openControl(){
+    document.getElementById("Control").style.display = "block";
+    document.getElementById("Kinematics").style.display = "none";
+    document.getElementById("Auto").style.display = "none";
 }

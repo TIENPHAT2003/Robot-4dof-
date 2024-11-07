@@ -3,6 +3,7 @@ let selectedPoint = null;
 var jsonSetPoint = ""; 
 var jsonSelectPoint = ""; 
 var appData = [];
+var jsonData = ""; 
 var app = 0;
 let jsonApp = `{"Command": "SelectPoint", "Data": [`;
 const gridContainer = document.getElementById('grid-container');
@@ -64,7 +65,6 @@ document.getElementById('buttonSetPoint').addEventListener('click', setPoint);
 document.getElementById('buttonSelectPoint').addEventListener('click', () => {
     if (selectedPoint) {
         calculateInverseKinematicsSelectPoint(selectedPoint);
-        
     } else {
         console.log("No point selected."); 
     }
@@ -74,13 +74,13 @@ function calculateInverseKinematicsSetPoint(point){
     const row = point.getAttribute('data-row');
     const col = point.getAttribute('data-col');
     
-    const xValue = 100 + (10 - col) * 20; 
+    const xValue = 100 + (10 - col) * 20 ; 
     const yValue = -100 + row * 20; 
 
 
     var Px_IK = parseFloat(`${xValue}`);
     var Py_IK = parseFloat(`${yValue}`);
-    var Pz_IK = 10;
+    var Pz_IK = 50;
     var Theta_IK = -90;
 
     let Theta1_IK,Theta2_IK,Theta3_IK,Theta4_IK;
@@ -156,13 +156,13 @@ function calculateInverseKinematicsSelectPoint(point) {
     const row = point.getAttribute('data-row');
     const col = point.getAttribute('data-col');
     
-    const xValue = 100 + (10 - col) * 20; 
-    const yValue = -100 + row * 20; 
+    const xValue = 100 + (10 - col) * 20 ; 
+    const yValue = -100 + row * 20 ; 
 
 
     var Px_IK = parseFloat(`${xValue}`);
     var Py_IK = parseFloat(`${yValue}`);
-    var Pz_IK = 10;
+    var Pz_IK = 15;
     var Theta_IK = -90;
 
     let Theta1_IK,Theta2_IK,Theta3_IK,Theta4_IK;
@@ -246,7 +246,6 @@ function calculateInverseKinematicsSelectPoint(point) {
         const jsonString = JSON.stringify(jsonApp);
         jsonSelectPoint = jsonString;
         console.log(jsonString);
-
         app++;
         counter++;
     }
@@ -255,5 +254,7 @@ function calculateInverseKinematicsSelectPoint(point) {
 document.getElementById('buttonStartAuto').addEventListener('click', () => {
     console.log(jsonSelectPoint);
     websocket.send(jsonSelectPoint);
+
 })
+
 

@@ -65,7 +65,6 @@ osThreadId TaskLogicHandle;
 osThreadId TaskSetHomeHandle;
 osThreadId TaskCalPIDHandle;
 osThreadId TaskTrajectoryHandle;
-osThreadId TaskUartHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -87,7 +86,6 @@ void StartTaskLogic(void const * argument);
 void StartTaskSetHome(void const * argument);
 void StartTaskPID(void const * argument);
 void StartTaskTrajectory(void const * argument);
-void StartTaskUart(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -104,6 +102,8 @@ typedef struct{
 	uint8_t SetPoint_Nha;
 	uint8_t SetPoint_Hut;
 	uint8_t startQD;
+	uint8_t startHut;
+	uint8_t startNha;
 }FlagStart_;
 FlagStart_ FlagStart;
 
@@ -176,7 +176,7 @@ typedef struct{
 Setpoint_ Setpoint;
 
 float T1, T2, T3, T4;
-float Tf=3000;
+float Tf=1000;
 
 float p(float p0, float pf, float tf, float v0, float vf, float T)
 {
@@ -277,6 +277,11 @@ void UART_Handle(char* data, Setpoint_* Setpoint)
         else if (strstr(data, "start"))
         {
             FlagStart.startProgram = 1;
+            Angle.AngleLink1 = 0;
+            Angle.AngleLink2 = 0;
+            Angle.AngleLink3 = 0;
+            Angle.AngleLink4 = 0;
+
         }
         else if (strstr(data, "disconnected"))
         {
@@ -311,7 +316,7 @@ PID_Param	PID_DC_POS_LINK1;
 void PID_LINK1_Init()
 {
 	PID_DC_SPEED_LINK1.kP = 50;
-	PID_DC_SPEED_LINK1.kI = 250;
+	PID_DC_SPEED_LINK1.kI = 300;
 	PID_DC_SPEED_LINK1.kD = 0;
 	PID_DC_SPEED_LINK1.alpha = 0;
 	PID_DC_SPEED_LINK1.deltaT = 0.01;
@@ -336,7 +341,7 @@ void PID_LINK1_Speed(){
 	Drive(&Motor_LINK1, &htim8, PID_DC_SPEED_LINK1.u, TIM_CHANNEL_3, TIM_CHANNEL_4);
 }
 void PID_LINK1_Pos(){
-	Pid_Cal(&PID_DC_POS_LINK1, Angle.AngleLink1, CountRead(&ENC_LINK1, count_ModeDegree));
+	Pid_Cal(&PID_DC_POS_LINK1, Angle.AngleLink1 - 2, CountRead(&ENC_LINK1, count_ModeDegree));
 	PID_LINK1_Speed();
 }
 //----------------LINK1------------------//
@@ -349,7 +354,7 @@ PID_Param	PID_DC_POS_LINK2;
 void PID_LINK2_Init()
 {
 	PID_DC_SPEED_LINK2.kP = 50;
-	PID_DC_SPEED_LINK2.kI = 250;
+	PID_DC_SPEED_LINK2.kI = 300;
 	PID_DC_SPEED_LINK2.kD = 0;
 	PID_DC_SPEED_LINK2.alpha = 0;
 	PID_DC_SPEED_LINK2.deltaT = 0.01;
@@ -374,7 +379,7 @@ void PID_LINK2_Speed(){
 	Drive(&Motor_LINK2, &htim4, PID_DC_SPEED_LINK2.u, TIM_CHANNEL_3, TIM_CHANNEL_4);
 }
 void PID_LINK2_Pos(){
-	Pid_Cal(&PID_DC_POS_LINK2, Angle.AngleLink2 -187, CountRead(&ENC_LINK2, count_ModeDegree));
+	Pid_Cal(&PID_DC_POS_LINK2, Angle.AngleLink2 - 187, CountRead(&ENC_LINK2, count_ModeDegree));
 	PID_LINK2_Speed();
 }
 //----------------LINK 2------------------//
@@ -425,7 +430,7 @@ PID_Param	PID_DC_POS_LINK4;
 void PID_LINK4_Init()
 {
 	PID_DC_SPEED_LINK4.kP = 50;
-	PID_DC_SPEED_LINK4.kI = 250;
+	PID_DC_SPEED_LINK4.kI = 300;
 	PID_DC_SPEED_LINK4.kD = 0;
 	PID_DC_SPEED_LINK4.alpha = 0;
 	PID_DC_SPEED_LINK4.deltaT = 0.01;
@@ -515,8 +520,8 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
 
   EncoderSetting(&ENC_LINK1, &htim1, 6950, 0.01);
-  EncoderSetting(&ENC_LINK2, &htim2, 3250, 0.01);
-  EncoderSetting(&ENC_LINK3, &htim3, 7050, 0.01);
+  EncoderSetting(&ENC_LINK2, &htim2, 3350, 0.01);
+  EncoderSetting(&ENC_LINK3, &htim3, 7200, 0.01);
   EncoderSetting(&ENC_LINK4, &htim5, 3220, 0.01);
 
   PID_LINK1_Init();
@@ -560,10 +565,6 @@ int main(void)
   /* definition and creation of TaskTrajectory */
   osThreadDef(TaskTrajectory, StartTaskTrajectory, osPriorityBelowNormal, 0, 128);
   TaskTrajectoryHandle = osThreadCreate(osThread(TaskTrajectory), NULL);
-
-  /* definition and creation of TaskUart */
-  osThreadDef(TaskUart, StartTaskUart, osPriorityIdle, 0, 128);
-  TaskUartHandle = osThreadCreate(osThread(TaskUart), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1104,15 +1105,25 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, NamCham1_Pin|NamCham2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : Sensor_J3_Pin Sensor_J4_Pin */
   GPIO_InitStruct.Pin = Sensor_J3_Pin|Sensor_J4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : NamCham1_Pin NamCham2_Pin */
+  GPIO_InitStruct.Pin = NamCham1_Pin|NamCham2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : Sensor_J1_Pin Sensor_J2_Pin */
   GPIO_InitStruct.Pin = Sensor_J1_Pin|Sensor_J2_Pin;
@@ -1142,6 +1153,7 @@ void StartTaskLogic(void const * argument)
 
   for(;;)
   {
+
 	  if(FlagStart.startQD == 1){
 		  if(count < Setpoint.countPoint){
 			  Setpoint.setpoint1 = Setpoint.points[count].theta1;
@@ -1149,14 +1161,18 @@ void StartTaskLogic(void const * argument)
 			  Setpoint.setpoint3 = Setpoint.points[count].theta3;
 			  Setpoint.setpoint4 = Setpoint.points[count].theta4;
 
-			  osDelay(5000);
+			  osDelay(3000);
+			  HAL_GPIO_WritePin(NamCham1_GPIO_Port, NamCham1_Pin, 1);
+			  HAL_GPIO_WritePin(NamCham2_GPIO_Port, NamCham2_Pin, 0);
 
 			  Setpoint.setpoint1 = Setpoint.theta1_Nha;
 			  Setpoint.setpoint2 = Setpoint.theta2_Nha;
 			  Setpoint.setpoint3 = Setpoint.theta3_Nha;
 			  Setpoint.setpoint4 = Setpoint.theta4_Nha;
 
-			  osDelay(5000);
+			  osDelay(3000);
+			  HAL_GPIO_WritePin(NamCham1_GPIO_Port, NamCham1_Pin, 0);
+			  HAL_GPIO_WritePin(NamCham2_GPIO_Port, NamCham2_Pin, 0);
 
 			  count++;
 		  }
@@ -1206,12 +1222,11 @@ void StartTaskSetHome(void const * argument)
 					ResetCount(&ENC_LINK1, 1);
 					SpeedSetHomeJ.SpeedSetHomeJ1 = 0;
 					sethomeJ.sethomeJ1 = 1;
-					Angle.AngleLink1 = 0;
+					Angle.AngleLink1 = 2;
 					Setpoint.p0_1 = 0;
 				}
 			}
 			else {
-//				SpeedSetHomeJ.SpeedSetHomeJ1 = -400;
 				if(CountRead(&ENC_LINK1, count_ModeDegree) > 90 && SpeedSetHomeJ.SpeedSetHomeJ1 > 0){
 					SpeedSetHomeJ.SpeedSetHomeJ1 *= -1;
 				}
@@ -1234,7 +1249,6 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-//				SpeedSetHomeJ.SpeedSetHomeJ2 = 400;
 				Drive(&Motor_LINK2, &htim4, SpeedSetHomeJ.SpeedSetHomeJ2, TIM_CHANNEL_3, TIM_CHANNEL_4);
 			}
 		}
@@ -1250,7 +1264,6 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-//				SpeedSetHomeJ.SpeedSetHomeJ3 = -300;
 				Drive(&Motor_LINK3, &htim4, SpeedSetHomeJ.SpeedSetHomeJ3, TIM_CHANNEL_1, TIM_CHANNEL_2);
 			}
 		}
@@ -1266,7 +1279,6 @@ void StartTaskSetHome(void const * argument)
 				}
 			}
 			else {
-//				SpeedSetHomeJ.SpeedSetHomeJ4 = 300;
 				Drive(&Motor_LINK4, &htim9, SpeedSetHomeJ.SpeedSetHomeJ4, TIM_CHANNEL_1, TIM_CHANNEL_2);
 			}
 		}
@@ -1384,25 +1396,6 @@ void StartTaskTrajectory(void const * argument)
     osDelay(1);
   }
   /* USER CODE END StartTaskTrajectory */
-}
-
-/* USER CODE BEGIN Header_StartTaskUart */
-/**
-* @brief Function implementing the TaskUart thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartTaskUart */
-void StartTaskUart(void const * argument)
-{
-  /* USER CODE BEGIN StartTaskUart */
-  /* Infinite loop */
-  for(;;)
-  {
-
-    osDelay(10);
-  }
-  /* USER CODE END StartTaskUart */
 }
 
 /**

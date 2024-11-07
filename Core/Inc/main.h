@@ -75,6 +75,10 @@ void Error_Handler(void);
 #define ENC_A_J3_GPIO_Port GPIOA
 #define ENC_B_J3_Pin GPIO_PIN_7
 #define ENC_B_J3_GPIO_Port GPIOA
+#define NamCham1_Pin GPIO_PIN_13
+#define NamCham1_GPIO_Port GPIOB
+#define NamCham2_Pin GPIO_PIN_14
+#define NamCham2_GPIO_Port GPIOB
 #define PMW3_A_Pin GPIO_PIN_12
 #define PMW3_A_GPIO_Port GPIOD
 #define PWM3_B_Pin GPIO_PIN_13

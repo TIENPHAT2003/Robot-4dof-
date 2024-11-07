@@ -1,3 +1,8 @@
+var     L1 	=	91
+var     L2	=	122
+var     L3	=	78
+var     L4	=	79
+var     d1	=	256 // (80 + 176)
 function updateJointPositionFromInput(joint) {
     const inputValue = document.getElementById(joint).value;
     const slider = document.getElementById(`${joint}-slider`);
@@ -30,13 +35,15 @@ function calculateInverseKinematics(){
         let anpha = 0, k = 0, E = 0, F = 0, a = 0, b = 0, d = 0, f = 0, var_temp = 0, c23 = 0, s23 = 0, t_rad = 0;
     
         t_rad = Theta_IK * (Math.PI / 180);
+        
         k = Math.sqrt(Math.pow(Px_IK, 2) + Math.pow(Py_IK, 2));
+        
         theta1_IK_rad = Math.atan2((Py_IK / k), (Px_IK / k));
         Theta1_IK = theta1_IK_rad * (180 / Math.PI);
         Theta1_IK = Math.round(Theta1_IK);
     
         if (Theta1_IK < -180) {
-            Theta1_IK += 360;
+            Theta1_IK += 360;   
         } else if (Theta1_IK > 180) {
             Theta1_IK -= 360;
         }

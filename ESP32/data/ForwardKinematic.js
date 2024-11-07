@@ -1,8 +1,3 @@
-var     L1 	=	91
-var     L2	=	122
-var     L3	=	77
-var     L4	=	79.5
-var     d1	=	(62 + 176)
 function updateJointAngleFromInput(joint) {
     const inputValue = document.getElementById(joint).value;
     const slider = document.getElementById(`${joint}-slider`);
