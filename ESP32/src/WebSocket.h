@@ -154,9 +154,6 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
         }
     }
 }
-
-
-
 //onEvent
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch (type) {
@@ -169,7 +166,7 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
       sprintf(buffer, "disconnected\n");
       Serial.println(buffer);
       mySerial.println(buffer);
-      memset(buffer, 0, sizeof(buffer));  // Clear buffer after sending
+      memset(buffer, 0, sizeof(buffer)); 
 
       break;
     case WS_EVT_DATA:

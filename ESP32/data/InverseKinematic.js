@@ -85,6 +85,7 @@ function calculateInverseKinematics(){
         theta4_IK_rad = t_rad - theta2_IK_rad - theta3_IK_rad;
         Theta4_IK = theta4_IK_rad * (180 / Math.PI);
         Theta4_IK = Math.round(Theta4_IK);
+        
         if(Theta1_IK > 90 || Theta1_IK < -90 || Theta2_IK > 90 || Theta2_IK < -90 || Theta3_IK > 90 || Theta3_IK < -90 || Theta4_IK > 90 || Theta4_IK < -90) {
             var modal = new bootstrap.Modal(document.getElementById('wrongInputModal'));
             modal.show();
