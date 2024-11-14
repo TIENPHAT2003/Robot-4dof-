@@ -5451,48 +5451,47 @@ LOAD C:/ST/STM32CubeIDE_1.14.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
                 0x0000000008001734       0x30 ./Core/Src/main.o
                 0x0000000008001734                UartIdle_Init
  .text.UART_Handle
-                0x0000000008001764      0x2d0 ./Core/Src/main.o
+                0x0000000008001764      0x2d4 ./Core/Src/main.o
                 0x0000000008001764                UART_Handle
  .text.HAL_UARTEx_RxEventCallback
-                0x0000000008001a34       0x54 ./Core/Src/main.o
-                0x0000000008001a34                HAL_UARTEx_RxEventCallback
+                0x0000000008001a38       0x54 ./Core/Src/main.o
+                0x0000000008001a38                HAL_UARTEx_RxEventCallback
  .text.PID_LINK1_Init
-                0x0000000008001a88       0xac ./Core/Src/main.o
-                0x0000000008001a88                PID_LINK1_Init
+                0x0000000008001a8c       0xac ./Core/Src/main.o
+                0x0000000008001a8c                PID_LINK1_Init
  .text.PID_LINK1_Speed
-                0x0000000008001b34       0x70 ./Core/Src/main.o
-                0x0000000008001b34                PID_LINK1_Speed
+                0x0000000008001b38       0x70 ./Core/Src/main.o
+                0x0000000008001b38                PID_LINK1_Speed
  .text.PID_LINK1_Pos
-                0x0000000008001ba4       0x54 ./Core/Src/main.o
-                0x0000000008001ba4                PID_LINK1_Pos
+                0x0000000008001ba8       0x54 ./Core/Src/main.o
+                0x0000000008001ba8                PID_LINK1_Pos
  .text.PID_LINK2_Init
-                0x0000000008001bf8       0xac ./Core/Src/main.o
-                0x0000000008001bf8                PID_LINK2_Init
+                0x0000000008001bfc       0xac ./Core/Src/main.o
+                0x0000000008001bfc                PID_LINK2_Init
  .text.PID_LINK2_Speed
-                0x0000000008001ca4       0x70 ./Core/Src/main.o
-                0x0000000008001ca4                PID_LINK2_Speed
+                0x0000000008001ca8       0x70 ./Core/Src/main.o
+                0x0000000008001ca8                PID_LINK2_Speed
  .text.PID_LINK2_Pos
-                0x0000000008001d14       0x58 ./Core/Src/main.o
-                0x0000000008001d14                PID_LINK2_Pos
+                0x0000000008001d18       0x58 ./Core/Src/main.o
+                0x0000000008001d18                PID_LINK2_Pos
  .text.PID_LINK3_Init
-                0x0000000008001d6c       0xac ./Core/Src/main.o
-                0x0000000008001d6c                PID_LINK3_Init
+                0x0000000008001d70       0xac ./Core/Src/main.o
+                0x0000000008001d70                PID_LINK3_Init
  .text.PID_LINK3_Speed
-                0x0000000008001e18       0x70 ./Core/Src/main.o
-                0x0000000008001e18                PID_LINK3_Speed
+                0x0000000008001e1c       0x70 ./Core/Src/main.o
+                0x0000000008001e1c                PID_LINK3_Speed
  .text.PID_LINK3_Pos
-                0x0000000008001e88       0x58 ./Core/Src/main.o
-                0x0000000008001e88                PID_LINK3_Pos
+                0x0000000008001e8c       0x58 ./Core/Src/main.o
+                0x0000000008001e8c                PID_LINK3_Pos
  .text.PID_LINK4_Init
-                0x0000000008001ee0       0xac ./Core/Src/main.o
-                0x0000000008001ee0                PID_LINK4_Init
+                0x0000000008001ee4       0xac ./Core/Src/main.o
+                0x0000000008001ee4                PID_LINK4_Init
  .text.PID_LINK4_Speed
-                0x0000000008001f8c       0x70 ./Core/Src/main.o
-                0x0000000008001f8c                PID_LINK4_Speed
+                0x0000000008001f90       0x70 ./Core/Src/main.o
+                0x0000000008001f90                PID_LINK4_Speed
  .text.PID_LINK4_Pos
-                0x0000000008001ffc       0x58 ./Core/Src/main.o
-                0x0000000008001ffc                PID_LINK4_Pos
- *fill*         0x0000000008002054        0x4 
+                0x0000000008002000       0x58 ./Core/Src/main.o
+                0x0000000008002000                PID_LINK4_Pos
  .text.main     0x0000000008002058      0x1e8 ./Core/Src/main.o
                 0x0000000008002058                main
  .text.SystemClock_Config
@@ -7286,32 +7285,32 @@ LOAD C:/ST/STM32CubeIDE_1.14.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
  .debug_macro   0x000000000002345a      0x196 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
  .debug_macro   0x00000000000235f0      0x1ae ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
 
-.debug_line     0x0000000000000000    0x16c92
+.debug_line     0x0000000000000000    0x16c95
  .debug_line    0x0000000000000000      0x8a8 ./Core/Src/Encoder.o
  .debug_line    0x00000000000008a8      0x9d8 ./Core/Src/MotorDrive.o
  .debug_line    0x0000000000001280      0xac0 ./Core/Src/PID.o
  .debug_line    0x0000000000001d40      0x84d ./Core/Src/freertos.o
- .debug_line    0x000000000000258d     0x159b ./Core/Src/main.o
- .debug_line    0x0000000000003b28      0x9ed ./Core/Src/stm32f4xx_hal_msp.o
- .debug_line    0x0000000000004515      0x7ca ./Core/Src/stm32f4xx_hal_timebase_tim.o
- .debug_line    0x0000000000004cdf      0x84e ./Core/Src/stm32f4xx_it.o
- .debug_line    0x000000000000552d      0x8b2 ./Core/Src/syscalls.o
- .debug_line    0x0000000000005ddf      0x583 ./Core/Src/sysmem.o
- .debug_line    0x0000000000006362      0x7d0 ./Core/Src/system_stm32f4xx.o
- .debug_line    0x0000000000006b32       0x7a ./Core/Startup/startup_stm32f407vetx.o
- .debug_line    0x0000000000006bac      0xa36 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
- .debug_line    0x00000000000075e2      0xd30 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
- .debug_line    0x0000000000008312      0xf9a ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
- .debug_line    0x00000000000092ac      0xbaa ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.o
- .debug_line    0x0000000000009e56      0xdc7 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.o
- .debug_line    0x000000000000ac1d     0x37c2 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.o
- .debug_line    0x000000000000e3df     0x1a32 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o
- .debug_line    0x000000000000fe11     0x28f3 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
- .debug_line    0x0000000000012704     0x1266 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.o
- .debug_line    0x000000000001396a      0x796 ./Middlewares/Third_Party/FreeRTOS/Source/list.o
- .debug_line    0x0000000000014100     0x19a5 ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
- .debug_line    0x0000000000015aa5      0x830 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
- .debug_line    0x00000000000162d5      0x9bd ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+ .debug_line    0x000000000000258d     0x159e ./Core/Src/main.o
+ .debug_line    0x0000000000003b2b      0x9ed ./Core/Src/stm32f4xx_hal_msp.o
+ .debug_line    0x0000000000004518      0x7ca ./Core/Src/stm32f4xx_hal_timebase_tim.o
+ .debug_line    0x0000000000004ce2      0x84e ./Core/Src/stm32f4xx_it.o
+ .debug_line    0x0000000000005530      0x8b2 ./Core/Src/syscalls.o
+ .debug_line    0x0000000000005de2      0x583 ./Core/Src/sysmem.o
+ .debug_line    0x0000000000006365      0x7d0 ./Core/Src/system_stm32f4xx.o
+ .debug_line    0x0000000000006b35       0x7a ./Core/Startup/startup_stm32f407vetx.o
+ .debug_line    0x0000000000006baf      0xa36 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
+ .debug_line    0x00000000000075e5      0xd30 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
+ .debug_line    0x0000000000008315      0xf9a ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
+ .debug_line    0x00000000000092af      0xbaa ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.o
+ .debug_line    0x0000000000009e59      0xdc7 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.o
+ .debug_line    0x000000000000ac20     0x37c2 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.o
+ .debug_line    0x000000000000e3e2     0x1a32 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o
+ .debug_line    0x000000000000fe14     0x28f3 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
+ .debug_line    0x0000000000012707     0x1266 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.o
+ .debug_line    0x000000000001396d      0x796 ./Middlewares/Third_Party/FreeRTOS/Source/list.o
+ .debug_line    0x0000000000014103     0x19a5 ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
+ .debug_line    0x0000000000015aa8      0x830 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
+ .debug_line    0x00000000000162d8      0x9bd ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
 
 .debug_str      0x0000000000000000    0xd7135
  .debug_str     0x0000000000000000    0xc4403 ./Core/Src/Encoder.o

@@ -159,10 +159,14 @@ function calculateInverseKinematicsSelectPoint(point) {
     const xValue = 100 + (10 - col) * 20 ; 
     const yValue = -100 + row * 20 ; 
 
-
+    var Pz_IK = 15;
     var Px_IK = parseFloat(`${xValue}`);
     var Py_IK = parseFloat(`${yValue}`);
-    var Pz_IK = 15;
+
+    if (Px_IK > 220 || (Px_IK === 220 && (Py_IK === 100 || Py_IK === -100))) {
+        Pz_IK = 5;
+    }
+    
     var Theta_IK = -90;
 
     let Theta1_IK,Theta2_IK,Theta3_IK,Theta4_IK;

@@ -225,6 +225,7 @@ void UART_Handle(char* data, Setpoint_* Setpoint)
         }
         else if (strstr(data, "Point"))
         {
+        	Setpoint->countPoint = 0;
         	if (dataBufferIndex + strlen(data) < sizeof(uartDataBuffer) - 1) {
 				strncat(uartDataBuffer, data, sizeof(uartDataBuffer) - dataBufferIndex - 1);
 				dataBufferIndex += strlen(data);
