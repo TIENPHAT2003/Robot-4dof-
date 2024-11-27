@@ -97,7 +97,7 @@ def compute_fk(theta1, theta2, theta3, theta4):
     return [(x0, y0, z0), (x1, y1, z1), (x2, y2, z2), (x3, y3, z3), (x4, y4, z4)]
 
 # Example input for the end effector's position
-Px_IK, Py_IK, Pz_IK, Theta_IK = 370, 0, 256, 0
+Px_IK, Py_IK, Pz_IK, Theta_IK = 140, 20, 10, -90
 
 # Compute inverse kinematics
 Theta1_IK, Theta2_IK, Theta3_IK, Theta4_IK = inverse_kinematics(Px_IK, Py_IK, Pz_IK, Theta_IK)
@@ -134,5 +134,4 @@ ax.text(end_effector[0], end_effector[1], end_effector[2],
 ax.set_xlabel('Px')
 ax.set_ylabel('Py')
 ax.set_zlabel('Pz')
-plt.title('3D Inverse Kinematics with Different Colors for Each Link and End Effector Position')
 plt.show()

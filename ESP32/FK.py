@@ -36,7 +36,7 @@ def compute_fk(theta1, theta2, theta3, theta4):
     return [(x0, y0, z0), (x1, y1, z1), (x2, y2, z2), (x3, y3, z3), (x4, y4, z4)]
 
 # Góc nhập vào cho mỗi khớp (thay giá trị phù hợp)
-theta1, theta2, theta3, theta4 = 0, 90, 0, 0
+theta1, theta2, theta3, theta4 = -90, 0, 0, 90
 
 # Tính toán vị trí các khớp
 positions = compute_fk(theta1, theta2, theta3, theta4)
@@ -63,5 +63,4 @@ ax.text(end_effector[0], end_effector[1], end_effector[2],
 ax.set_xlabel('Px')
 ax.set_ylabel('Py')
 ax.set_zlabel('Pz')
-plt.title('3D Forward Kinematics with Different Colors for Each Link and End Effector Position')
 plt.show()
