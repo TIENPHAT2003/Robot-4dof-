@@ -28,8 +28,8 @@
 ../Core/Src/main.c:1082:13:MX_DMA_Init	1
 ../Core/Src/main.c:1100:13:MX_GPIO_Init	1
 ../Core/Src/main.c:1150:6:StartTaskLogic	3
-../Core/Src/main.c:1194:6:StartTaskSetHome	19
-../Core/Src/main.c:1302:6:StartTaskPID	5
-../Core/Src/main.c:1325:6:StartTaskTrajectory	15
-../Core/Src/main.c:1410:6:HAL_TIM_PeriodElapsedCallback	5
-../Core/Src/main.c:1436:6:Error_Handler	1
+../Core/Src/main.c:1195:6:StartTaskSetHome	19
+../Core/Src/main.c:1303:6:StartTaskPID	5
+../Core/Src/main.c:1326:6:StartTaskTrajectory	15
+../Core/Src/main.c:1411:6:HAL_TIM_PeriodElapsedCallback	5
+../Core/Src/main.c:1437:6:Error_Handler	1

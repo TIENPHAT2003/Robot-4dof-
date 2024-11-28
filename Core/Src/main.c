@@ -521,7 +521,7 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
 
   EncoderSetting(&ENC_LINK1, &htim1, 6950, 0.01);
-  EncoderSetting(&ENC_LINK2, &htim2, 3350, 0.01);
+  EncoderSetting(&ENC_LINK2, &htim2, 3450, 0.01);
   EncoderSetting(&ENC_LINK3, &htim3, 7200, 0.01);
   EncoderSetting(&ENC_LINK4, &htim5, 3220, 0.01);
 
@@ -1171,9 +1171,10 @@ void StartTaskLogic(void const * argument)
 			  Setpoint.setpoint3 = Setpoint.theta3_Nha;
 			  Setpoint.setpoint4 = Setpoint.theta4_Nha;
 
-			  osDelay(3000);
+			  osDelay(1500);
 			  HAL_GPIO_WritePin(NamCham1_GPIO_Port, NamCham1_Pin, 0);
 			  HAL_GPIO_WritePin(NamCham2_GPIO_Port, NamCham2_Pin, 0);
+			  osDelay(2000);
 
 			  count++;
 		  }
