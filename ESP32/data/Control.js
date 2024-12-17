@@ -13,4 +13,15 @@ function tabelData(jsonData) {
     TableHTML += "</tbody></table>";
     document.getElementById('tabledata').innerHTML = TableHTML;
 }
+document.getElementById("btnOn").addEventListener("click", function () {
+    var jsonhut = "{'Command':'HUT'}";
+    console.log(jsonhut);
+    websocket.send(jsonhut);
+});
+
+document.getElementById("btnOff").addEventListener("click", function () {
+    var jsonnha = "{'Command':'NHA'}";
+    console.log(jsonnha);
+    websocket.send(jsonnha);
+});
 
