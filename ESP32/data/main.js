@@ -31,7 +31,7 @@ function initButton() {
     document.getElementById("buttonstart").addEventListener("click", openPageControlller);
     document.getElementById("buttonKinematics").addEventListener("click", openKinematics);
     document.getElementById("buttonAuto").addEventListener("click", openAuto);
-    // document.getElementById("buttonControl").addEventListener("click", openControl);
+    document.getElementById("buttonControl").addEventListener("click", openControl);
 }
 function openPageControlller(){
     document.getElementById("PageController").style.display = "block";

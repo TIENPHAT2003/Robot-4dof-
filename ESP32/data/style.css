@@ -403,7 +403,6 @@ html, body {
   justify-content: center;
   gap: 10px;   
   margin-right: 28%; 
-
 }
 
 .button-container button {
@@ -417,4 +416,25 @@ html, body {
 
 .button-container button:hover {
   background-color: #e6ba00;
+}
+.button-container-control {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 50px;
+}
+.btn-control {
+  width: 150px;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+}
+.btn-control-magnet-on {
+  background-color: #28a745;
+}
+.btn-control-magnet-off {
+  background-color: #dc3545;
+}
+.btn-control i {
+  margin-right: 8px; /* Khoảng cách giữa icon và chữ */
 }

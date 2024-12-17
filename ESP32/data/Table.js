@@ -3,7 +3,6 @@ let selectedPoint = null;
 var jsonSetPoint = ""; 
 var jsonSelectPoint = ""; 
 var appData = [];
-var jsonData = ""; 
 var app = 0;
 let jsonApp = `{"Command": "SelectPoint", "Data": [`;
 const gridContainer = document.getElementById('grid-container');
@@ -159,7 +158,7 @@ function calculateInverseKinematicsSelectPoint(point) {
     const xValue = 100 + (10 - col) * 20 ; 
     const yValue = -100 + row * 20 ; 
 
-    var Pz_IK = 26;
+    var Pz_IK = 25;
     var Px_IK = parseFloat(`${xValue}`);
     var Py_IK = parseFloat(`${yValue}`);
 
@@ -252,6 +251,7 @@ function calculateInverseKinematicsSelectPoint(point) {
         console.log(jsonString);
         app++;
         counter++;
+        tabelData(jsonString);
     }
 }
 
