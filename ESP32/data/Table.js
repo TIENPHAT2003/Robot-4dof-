@@ -79,7 +79,7 @@ function calculateInverseKinematicsSetPoint(point){
 
     var Px_IK = parseFloat(`${xValue}`);
     var Py_IK = parseFloat(`${yValue}`);
-    var Pz_IK = 50;
+    
     var Theta_IK = -90;
 
     let Theta1_IK,Theta2_IK,Theta3_IK,Theta4_IK;
@@ -99,7 +99,7 @@ function calculateInverseKinematicsSetPoint(point){
     }
 
     E = Px_IK * Math.cos(theta1_IK_rad) + Py_IK * Math.sin(theta1_IK_rad) - L1 - L4 * Math.cos(t_rad);
-    F = Pz_IK - d1 - L4 * Math.sin(t_rad);
+    F = Pz_IK_SetPoint - d1 - L4 * Math.sin(t_rad);
 
     a = -2 * L2 * F;
     b = -2 * L2 * E;
@@ -121,7 +121,7 @@ function calculateInverseKinematicsSetPoint(point){
     }
 
     c23 = (Px_IK * Math.cos(theta1_IK_rad) + Py_IK * Math.sin(theta1_IK_rad) - L1 - L2 * Math.cos(theta2_IK_rad) - L4 * Math.cos(t_rad)) / L3;
-    s23 = (Pz_IK - d1 - L2 * Math.sin(theta2_IK_rad) - L4 * Math.sin(t_rad)) / L3;
+    s23 = (Pz_IK_SetPoint - d1 - L2 * Math.sin(theta2_IK_rad) - L4 * Math.sin(t_rad)) / L3;
     theta3_IK_rad = Math.atan2(s23, c23) - theta2_IK_rad;
     Theta3_IK = theta3_IK_rad * (180 / Math.PI);
     Theta3_IK = Math.round(Theta3_IK);
@@ -144,8 +144,9 @@ function calculateInverseKinematicsSetPoint(point){
         selectedPoint.textContent = "SetPoint"; 
         selectedPoint.classList.add('setpoint'); 
 
-        var jsonSetPoint = "{'Command': 'SetPoint', 'Theta1':'"+ Theta1_IK +"','Theta2':'"+ Theta2_IK +"','Theta3':'"+ Theta3_IK +"','Theta4':'"+ Theta4_IK +"'}";
+        var jsonSetPoint = "{\"Command\": \"SetPoint\", \"Theta1\":\""+ Theta1_IK +"\",\"Theta2\":\""+ Theta2_IK +"\",\"Theta3\":\""+ Theta3_IK +"\",\"Theta4\":\""+ Theta4_IK +"\"}";
         console.log(jsonSetPoint);
+        tabelSetPointData(jsonSetPoint);
         websocket.send(jsonSetPoint);
 
     }
@@ -158,14 +159,12 @@ function calculateInverseKinematicsSelectPoint(point) {
     const xValue = 100 + (10 - col) * 20 ; 
     const yValue = -100 + row * 20 ; 
 
-    var Pz_IK = 25;
     var Px_IK = parseFloat(`${xValue}`);
     var Py_IK = parseFloat(`${yValue}`);
 
     if (Px_IK > 220 || (Px_IK === 220 && (Py_IK === 100 || Py_IK === -100))) {
-        Pz_IK = 16;
+        Pz_IK_SelectPoint = 16;
     }
-    
     var Theta_IK = -90;
 
     let Theta1_IK,Theta2_IK,Theta3_IK,Theta4_IK;
@@ -185,7 +184,7 @@ function calculateInverseKinematicsSelectPoint(point) {
     }
 
     E = Px_IK * Math.cos(theta1_IK_rad) + Py_IK * Math.sin(theta1_IK_rad) - L1 - L4 * Math.cos(t_rad);
-    F = Pz_IK - d1 - L4 * Math.sin(t_rad);
+    F = Pz_IK_SelectPoint - d1 - L4 * Math.sin(t_rad);
 
     a = -2 * L2 * F;
     b = -2 * L2 * E;
@@ -207,7 +206,7 @@ function calculateInverseKinematicsSelectPoint(point) {
     }
 
     c23 = (Px_IK * Math.cos(theta1_IK_rad) + Py_IK * Math.sin(theta1_IK_rad) - L1 - L2 * Math.cos(theta2_IK_rad) - L4 * Math.cos(t_rad)) / L3;
-    s23 = (Pz_IK - d1 - L2 * Math.sin(theta2_IK_rad) - L4 * Math.sin(t_rad)) / L3;
+    s23 = (Pz_IK_SelectPoint - d1 - L2 * Math.sin(theta2_IK_rad) - L4 * Math.sin(t_rad)) / L3;
     theta3_IK_rad = Math.atan2(s23, c23) - theta2_IK_rad;
     Theta3_IK = theta3_IK_rad * (180 / Math.PI);
     Theta3_IK = Math.round(Theta3_IK);

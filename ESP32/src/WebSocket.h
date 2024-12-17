@@ -139,6 +139,16 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
                 mySerial.println("Reset\n");
                 Serial.println("Reset\n");
             }
+            else if (command == "HUT")
+            {
+                mySerial.println("GAP\n");
+                Serial.println("GAP\n");
+            }
+            else if (command == "NHA")
+            {
+                mySerial.println("VUT\n");
+                Serial.println("VUT\n");
+            }
             else if (command == "SetPoint")
             {
                 sendSetPointData();

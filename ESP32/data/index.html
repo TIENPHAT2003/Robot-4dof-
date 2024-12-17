@@ -194,29 +194,31 @@
             <button id="calculate-forward" onclick="calculateInverseKinematics()">Calculate Inverse Kinematics</button>
           </div> 
         </div>
-        <div class="forward-kinematic">
-          <Center><h2><b>Current Position</b></h2></Center>
-          <h4><b>Angle:</b></h4>
-          <div class="position">
-            <label for="theta1">Theta 1:</label>
-            <input type="number" id="theta1" value="0" readonly>
-            <label for="theta2">Theta 2:</label>
-            <input type="number" id="theta2" value="0" readonly>
-            <label for="theta3">Theta 3:</label>
-            <input type="number" id="theta3" value="0" readonly>
-            <label for="theta4">Theta 4:</label>
-            <input type="number" id="theta4" value="0" readonly>
-          </div>
-          <h4><b>Position:</b></h4>
-          <div class="position">
-            <label for="px">Px:</label>
-            <input type="number" id="px" value="0" readonly>
-            <label for="py">Py:</label>
-            <input type="number" id="py" value="0" readonly>
-            <label for="pz">Pz:</label>
-            <input type="number" id="pz" value="0" readonly>
-            <label for="theta">Theta:</label>
-            <input type="number" id="theta" value="0" readonly>
+        <div class="kinematic-container">
+          <div class="forward-kinematic">
+            <Center><h2><b>Current Position</b></h2></Center>
+            <h4><b>Angle:</b></h4>
+            <div class="position">
+              <label for="theta1">Theta 1:</label>
+              <input type="number" id="theta1" value="0" readonly>
+              <label for="theta2">Theta 2:</label>
+              <input type="number" id="theta2" value="0" readonly>
+              <label for="theta3">Theta 3:</label>
+              <input type="number" id="theta3" value="0" readonly>
+              <label for="theta4">Theta 4:</label>
+              <input type="number" id="theta4" value="0" readonly>
+            </div>
+            <h4><b>Position:</b></h4>
+            <div class="position">
+              <label for="px">Px:</label>
+              <input type="number" id="px" value="0" readonly>
+              <label for="py">Py:</label>
+              <input type="number" id="py" value="0" readonly>
+              <label for="pz">Pz:</label>
+              <input type="number" id="pz" value="0" readonly>
+              <label for="theta">Theta:</label>
+              <input type="number" id="theta" value="0" readonly>
+            </div>
           </div>
         </div>
     </div>
@@ -234,25 +236,39 @@
       <div class="kinematic-container">
         <div class="forward-kinematic">
             <Center><h2><b>Specification Table</b></h2></Center>
+            <div id="tabledatasetpoint"></div>
             <div id="tabledata"></div>
         </div>
+      </div>
+      <div class="kinematic-container">
         <div class="forward-kinematic">
-            <Center><h2><b>Control Table</b></h2></Center>
-            <div class="button-container-control">
-              <!-- Nút Hút Nam Châm -->
-              <button id="btnOn" class="btn btn-magnet-on">
-                <i class="bi bi-magnet-fill"></i> Hút
-                <svg class="bi" width="20" height="20">
-                  <use xlink:href="#icon-hut"></use>
-                </svg>
-              </button>
-              <!-- Nút Nhả Nam Châm -->
-              <button id="btnOff" class="btn btn-magnet-off">
-                <i class="bi bi-magnet"></i>Nhả
-                <svg class="bi" width="20" height="20">
-                  <use xlink:href="#icon-nha"></use>
-                </svg>
-              </button>
+          <Center><h2><b>Control Table</b></h2></Center>
+          <div class="button-container-control">
+            <button id="btnOn" class="btn btn-magnet-on">
+              <i class="bi bi-magnet-fill"></i> Hút
+              <svg class="bi" width="20" height="20">
+                <use xlink:href="#icon-hut"></use>
+              </svg>
+            </button>
+            <button id="btnOff" class="btn btn-magnet-off">
+              <i class="bi bi-magnet"></i>Nhả
+              <svg class="bi" width="20" height="20">
+                <use xlink:href="#icon-nha"></use>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="forward-kinematic">
+          <Center><h2><b>Edit The Height Position</b></h2></Center>
+          <div class="joint-angles">
+            <div class="joint-angle-item">
+              <label for="setpoint">Set Point:</label>
+              <input type="text" id="setpoint" >
+            </div>
+            <div class="joint-angle-item">
+              <label for="selectpoint">Select Point:</label>
+              <input type="text" id="selectpoint">
+            </div>
           </div>
         </div>
       </div>
