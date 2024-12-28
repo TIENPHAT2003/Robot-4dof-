@@ -50,4 +50,9 @@ document.getElementById("btnOff").addEventListener("click", function () {
     console.log(jsonnha);
     websocket.send(jsonnha);
 });
+document.getElementById("btnsethome").addEventListener("click", function () {
+    var jsonnha = "{'Command':'Reset'}";
+    console.log(jsonnha);
+    websocket.send(jsonnha);
+});
 
