@@ -267,15 +267,13 @@ void UART_Handle(char* data, Setpoint_* Setpoint)
         {
             HAL_NVIC_SystemReset();
         }
-        else if (strstr(data, "GAP"))
+        else if (strstr(data, "hut"))
         {
-			HAL_GPIO_WritePin(NamCham1_GPIO_Port, NamCham1_Pin, 1);
-			HAL_GPIO_WritePin(NamCham2_GPIO_Port, NamCham2_Pin, 0);
+            // Handle "hut" command here
         }
-        else if (strstr(data, "VUT"))
+        else if (strstr(data, "nha"))
         {
-			HAL_GPIO_WritePin(NamCham1_GPIO_Port, NamCham1_Pin, 0);
-			HAL_GPIO_WritePin(NamCham2_GPIO_Port, NamCham2_Pin, 0);
+            // Handle "nha" command here
         }
         else if (strstr(data, "start"))
         {
@@ -297,6 +295,8 @@ void UART_Handle(char* data, Setpoint_* Setpoint)
         memset(data, 0, uartLogRxSize);
     }
 }
+
+
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size)
 {
@@ -342,7 +342,7 @@ void PID_LINK1_Speed(){
 	Drive(&Motor_LINK1, &htim8, PID_DC_SPEED_LINK1.u, TIM_CHANNEL_3, TIM_CHANNEL_4);
 }
 void PID_LINK1_Pos(){
-	Pid_Cal(&PID_DC_POS_LINK1, Angle.AngleLink1, CountRead(&ENC_LINK1, count_ModeDegree));
+	Pid_Cal(&PID_DC_POS_LINK1, Angle.AngleLink1 - 2, CountRead(&ENC_LINK1, count_ModeDegree));
 	PID_LINK1_Speed();
 }
 //----------------LINK1------------------//
@@ -521,7 +521,7 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
 
   EncoderSetting(&ENC_LINK1, &htim1, 6950, 0.01);
-  EncoderSetting(&ENC_LINK2, &htim2, 3440, 0.01);
+  EncoderSetting(&ENC_LINK2, &htim2, 3450, 0.01);
   EncoderSetting(&ENC_LINK3, &htim3, 7200, 0.01);
   EncoderSetting(&ENC_LINK4, &htim5, 3220, 0.01);
 
@@ -1224,7 +1224,7 @@ void StartTaskSetHome(void const * argument)
 					ResetCount(&ENC_LINK1, 1);
 					SpeedSetHomeJ.SpeedSetHomeJ1 = 0;
 					sethomeJ.sethomeJ1 = 1;
-					Angle.AngleLink1 = 0;
+					Angle.AngleLink1 = 2;
 					Setpoint.p0_1 = 0;
 				}
 			}

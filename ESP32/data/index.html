@@ -76,19 +76,17 @@
     <div class="content">
       <Center>
         <h3><b>THIẾT KẾ MÔ HÌNH VÀ ĐIỀU KHIỂN CÁNH TAY ROBOT 4 BẬC TỰ DO</b></h3>
-        <h4><b>Môn: Thực tập kỹ thuật Robot</b></h4>
+        <h4><b>Môn: Đồ án kỹ thuật Robot</b></h4>
       </Center>
       <div class="student-info">
         <div>
           <h4><b>Giáo viên hướng dẫn:</b></h4>
-          <p>TS. Nguyễn Văn Thái</p><br/><br/>
-          <img src="img/d1.jpg" alt="Giảng viên hướng dẫn">
+          <p>TS. Đặng Xuân Ba</p><br/><br/>
+          <img src="img/Ba1.jpg" alt="Giảng viên hướng dẫn">
         </div>
         <div>
           <h4><b>Sinh viên thực hiện:</b></h4>
           <p>Vũ Tiến Phát - 21151309</p>
-          <p>Nguyễn Văn Pháp - 21151303</p>
-          <p>Nguyễn Thanh Sang - 21151327</p>
           <img src="img/robot.png" alt="Giảng viên hướng dẫn">
         </div>
       </div>
@@ -105,7 +103,6 @@
       <a id="buttonKinematics">Kinematics</a>
       <a id="buttonAuto">Select Point</a>
       <a id="buttonControl">Control</a>
-      <a id="buttonSetting">Setting</a>
     </div>
     <div class="container" id="Kinematics">
       <div class="kinematic-container">
@@ -235,13 +232,6 @@
     <div id="Control" class="container" style="display: none;">
       <div class="kinematic-container">
         <div class="forward-kinematic">
-            <Center><h2><b>Specification Table</b></h2></Center>
-            <div id="tabledatasetpoint"></div>
-            <div id="tabledata"></div>
-        </div>
-      </div>
-      <div class="kinematic-container">
-        <div class="forward-kinematic">
           <Center><h2><b>Control Table</b></h2></Center>
           <div class="button-container-control">
             <button id="btnOn" class="btn btn-magnet-on">
@@ -256,13 +246,10 @@
                 <use xlink:href="#icon-nha"></use>
               </svg>
             </button>
-            <button id="btnsethome" class="btn btn-magnet-off">
-              <i class="bi bi-magnet"></i>Set Home
-            </button>
           </div>
         </div>
         <div class="forward-kinematic">
-          <Center><h2><b>Edit The Height Position</b></h2></Center>
+          <Center><h2><b>Edit The Height Position For Auto</b></h2></Center>
           <div class="joint-angles">
             <div class="joint-angle-item">
               <label for="setpoint">Set Point:</label>
@@ -273,6 +260,89 @@
               <input type="text" id="selectpoint">
             </div>
           </div>
+        </div>
+      </div>
+      <div class="kinematic-container">
+        <div class="forward-kinematic">
+          <Center><h2><b>Input Set Point</b></h2></Center>
+          <div class="joint-angles">
+            <div class="joint-angle-item">
+              <label for="setpoint_px">Px:</label>
+              <input type="text" id="setpoint_px" >
+            </div>
+          </div>
+          <div class="joint-angles">
+            <div class="joint-angle-item">
+              <label for="setpoint_py">Py:</label>
+              <input type="text" id="setpoint_py">
+            </div>
+          </div>
+          <div class="joint-angles">
+            <div class="joint-angle-item">
+              <label for="setpoint_pz">Pz:</label>
+              <input type="text" id="setpoint_pz">
+            </div>
+          </div>
+          <div class="joint-angles">
+            <div class="joint-angle-item">
+              <label for="setpoint_theta">Theta:</label>
+              <input type="text" id="setpoint_theta">
+            </div>
+          </div>
+          <div class="button-container-control">
+            <button id="saveinputsetpoint" class="btn btn-magnet-on" onclick="SaveSetPoint()">
+              <i class="bi bi-magnet-fill"></i> Save Point
+            </button>
+            <button id="clearsetpoint" class="btn btn-magnet-on" onclick="ClearSetPoint()">
+              <i class="bi bi-magnet-fill"></i> Clear Point
+            </button>
+          </div>
+        </div>
+
+        <div class="forward-kinematic">
+          <Center><h2><b>Input Select Point</b></h2></Center>
+          <div class="joint-angles">
+            <div class="joint-angle-item">
+              <label for="selectpoint_px">Px:</label>
+              <input type="text" id="selectpoint_px" >
+            </div>
+          </div>
+          <div class="joint-angles">
+            <div class="joint-angle-item">
+              <label for="selectpoint_py">Py:</label>
+              <input type="text" id="selectpoint_py">
+            </div>
+          </div>
+          <div class="joint-angles">
+            <div class="joint-angle-item">
+              <label for="selectpoint_pz">Pz:</label>
+              <input type="text" id="selectpoint_pz">
+            </div>
+          </div>
+          <div class="joint-angles">
+            <div class="joint-angle-item">
+              <label for="selectpoint_theta">Theta:</label>
+              <input type="text" id="selectpoint_theta">
+            </div>
+          </div>
+          <div class="button-container-control">
+            <button id="addinputselectpoint" class="btn btn-magnet-on" onclick="AddSelectPoint()">
+              <i class="bi bi-magnet-fill"></i> Add Point
+            </button>
+            <button id="saveinputselectpoint" class="btn btn-magnet-on" onclick="SaveSelectPoint()">
+              <i class="bi bi-magnet-fill"></i> Save Point
+            </button>
+            <button id="clearselectpoint" class="btn btn-magnet-on" onclick="ClearSelectPoint()">
+              <i class="bi bi-magnet-fill"></i> Clear Point
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="kinematic-container">
+        <div class="forward-kinematic">
+            <Center><h2><b>Specification Table</b></h2></Center>
+            <div id="tabledatasetpoint"></div>
+            <div id="tabledata"></div>
         </div>
       </div>
     </div>
